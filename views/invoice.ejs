@@ -1,1 +1,40 @@
-<!doctype html><html><head><%- include('partials/head') %></head><body><div class="app-shell"><%- include('partials/sidebar') %><main class="main"><%- include('partials/navbar') %><div class="content"><div x-data="invoicePage()" x-init="load()"><div class="d-print-none mb-3"><button class="btn btn-primary" onclick="window.print()">Print invoice</button></div><div class="card"><div class="card-body p-4"><div class="d-flex justify-content-between"><div><h3>Findoly Solutions LLP</h3><div class="text-secondary">B2B Tax Invoice</div></div><div class="text-end"><strong x-text="invoice.invoiceNumber"></strong><div x-text="shortDate(invoice.createdAt)"></div></div></div><hr><div><strong>Bill to:</strong> <span x-text="invoice.customerSnapshot?.businessName"></span><div x-text="invoice.customerSnapshot?.gstin||''"></div></div><div class="scroll-table mt-4"><table class="table"><thead><tr><th>Product</th><th>HSN</th><th>Qty</th><th>Unit</th><th>GST</th><th>Total</th></tr></thead><tbody><template x-for="l in invoice.lines||[]"><tr><td><span x-text="l.productName"></span><div class="small" x-text="l.sku"></div></td><td x-text="l.hsnCode||'—'"></td><td x-text="l.quantity"></td><td x-text="money(l.unitPricePaise)"></td><td x-text="money(l.gstPaise)"></td><td x-text="money(l.taxablePaise+l.gstPaise)"></td></tr></template></tbody></table></div><div class="text-end"><div>Taxable: <strong x-text="money(invoice.taxablePaise)"></strong></div><div x-show="invoice.cgstPaise">CGST: <strong x-text="money(invoice.cgstPaise)"></strong></div><div x-show="invoice.sgstPaise">SGST: <strong x-text="money(invoice.sgstPaise)"></strong></div><div x-show="invoice.igstPaise">IGST: <strong x-text="money(invoice.igstPaise)"></strong></div><div>GST: <strong x-text="money(invoice.totalGstPaise)"></strong></div><div class="fs-5">Total: <strong x-text="money(invoice.totalPaise)"></strong></div><div>Paid: <span x-text="money(invoice.paidPaise)"></span> · Outstanding: <span x-text="money(invoice.outstandingPaise)"></span></div></div></div></div></div></div></main></div><%- include('partials/scripts') %><script nonce="<%= cspNonce %>">function invoicePage(){return{invoice:{},async load(){const id=location.pathname.split('/').pop();this.invoice=(await apiFetch('/api/finance/invoices/'+encodeURIComponent(id))).data}}}</script></body></html>
+<!doctype html>
+<html lang="en" dir="ltr">
+  <%- include('partials/head') %>
+  <body x-data="crmShell()" x-init="initShell()">
+    <%- include('partials/navbar') %>
+    <div class="page-content">
+      <%- include('partials/sidebar') %>
+      <div class="content-wrapper">
+        <div class="content-inner">
+          <div class="page-header page-header-light crm-page-header d-print-none">
+            <div class="page-header-content crm-page-heading">
+              <div><div class="crm-page-eyebrow">Finance</div><h1 class="page-title mb-1">Invoice</h1><p class="crm-page-subtitle mb-0">Printable HTML tax invoice.</p></div>
+              <button type="button" class="btn btn-primary crm-primary-action" onclick="window.print()"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></svg>Print invoice</button>
+            </div>
+          </div>
+          <div class="content">
+            <div x-show="shellError" x-cloak class="alert alert-danger d-print-none" x-text="shellError"></div>
+            <main x-data="invoicePage()" x-init="load()">
+              <div class="card crm-data-card">
+                <div class="card-body p-4 p-lg-5">
+                  <div class="d-flex justify-content-between gap-3 flex-wrap">
+                    <div><img src="/images/findoly-logo.png" alt="Findoly" style="width:48px;height:48px;object-fit:contain" class="mb-3"><h3 class="mb-1">Findoly Solutions LLP</h3><div class="text-muted">B2B Tax Invoice</div></div>
+                    <div class="text-end"><div class="text-muted fs-sm">Invoice</div><strong class="fs-5" x-text="invoice.invoiceNumber"></strong><div class="text-muted fs-sm mt-1" x-text="formatDateOnly(invoice.createdAt)"></div></div>
+                  </div>
+                  <hr class="my-4">
+                  <div class="row g-4"><div class="col-md-7"><div class="text-muted fs-sm">Bill to</div><div class="fw-semibold fs-5" x-text="invoice.customerSnapshot?.businessName || '—'"></div><div x-text="invoice.customerSnapshot?.gstin || ''"></div></div><div class="col-md-5 text-md-end"><div class="text-muted fs-sm">Order reference</div><div class="fw-semibold" x-text="invoice.salesOrderId"></div></div></div>
+                  <div class="table-responsive mt-4"><table class="table crm-table mb-0"><thead><tr><th>Product</th><th>HSN</th><th>Qty</th><th class="text-end">Unit</th><th class="text-end">GST</th><th class="text-end">Total</th></tr></thead><tbody><template x-for="line in invoice.lines || []" :key="line.invoiceLineId"><tr><td><div class="fw-semibold" x-text="line.productName"></div><div class="text-muted fs-sm" x-text="line.sku"></div></td><td x-text="line.hsnCode || '—'"></td><td x-text="line.quantity"></td><td class="text-end" x-text="money(line.unitPricePaise)"></td><td class="text-end" x-text="money(line.gstPaise)"></td><td class="text-end fw-semibold" x-text="money(line.taxablePaise + line.gstPaise)"></td></tr></template></tbody></table></div>
+                  <div class="row justify-content-end mt-4"><div class="col-md-5 col-lg-4"><div class="d-flex justify-content-between py-1"><span class="text-muted">Taxable</span><strong x-text="money(invoice.taxablePaise)"></strong></div><div class="d-flex justify-content-between py-1" x-show="invoice.cgstPaise"><span class="text-muted">CGST</span><strong x-text="money(invoice.cgstPaise)"></strong></div><div class="d-flex justify-content-between py-1" x-show="invoice.sgstPaise"><span class="text-muted">SGST</span><strong x-text="money(invoice.sgstPaise)"></strong></div><div class="d-flex justify-content-between py-1" x-show="invoice.igstPaise"><span class="text-muted">IGST</span><strong x-text="money(invoice.igstPaise)"></strong></div><div class="d-flex justify-content-between py-2 border-top mt-2 fs-5"><span>Total</span><strong x-text="money(invoice.totalPaise)"></strong></div><div class="d-flex justify-content-between py-1"><span class="text-muted">Paid</span><span x-text="money(invoice.paidPaise)"></span></div><div class="d-flex justify-content-between py-1"><span class="text-muted">Outstanding</span><strong x-text="money(invoice.outstandingPaise)"></strong></div></div></div>
+                </div>
+              </div>
+            </main>
+          </div>
+          <%- include('partials/footer') %>
+        </div>
+      </div>
+    </div>
+    <script>function invoicePage(){return{invoice:{},error:'',async load(){try{const id=location.pathname.split('/').pop();this.invoice=(await apiFetch('/api/finance/invoices/'+encodeURIComponent(id))).data||{};}catch(e){this.error=e.message;showCrmToast(e.message,'error')}}}}</script>
+    <%- include('partials/scripts') %>
+  </body>
+</html>
