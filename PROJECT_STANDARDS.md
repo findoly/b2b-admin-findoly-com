@@ -43,6 +43,9 @@ These rules are mandatory for every change in this repository.
 - Preserve request IDs, safe error responses, health/readiness endpoints and graceful shutdown.
 
 ## UI
+- Production Admin pages must use the established `admin-findoly-com` CRM shell, responsive drawer/sidebar, page headers, cards, tables, forms, status badges, empty/loading states, and spacing conventions.
+- Never expose raw JSON, API payload textareas, `JSON.stringify(...)` dumps, debug `<pre>` blocks, internal IDs as the primary human-facing label, or developer-only controls in production UI.
+- Approved API payload construction must happen behind structured form controls. Human users work with business labels, rupee inputs, selectors, tables and controlled workflow actions.
 - Preserve Findoly's existing internal CRM visual language: Bootstrap-based compact cards, tables, forms, calm colors and responsive layout.
 - Customer surfaces stay mobile-first and simple.
 - Do not add a new design system or unrelated visual refactor.
