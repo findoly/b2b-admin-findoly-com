@@ -1,0 +1,1 @@
+const r=require("express").Router();const c=require("../controllers/masterController");const {requirePermission}=require("../middleware/auth");r.get("/",requirePermission("roles.view"),c.roleList);r.post("/",requirePermission("roles.create"),c.roleCreate);r.put("/:id",requirePermission("roles.edit"),c.roleUpdate);module.exports=r;
