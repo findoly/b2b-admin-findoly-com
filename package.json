@@ -13,7 +13,7 @@
     "check": "node scripts/check.js",
     "test": "node --test",
     "qa:static": "node scripts/qa-static.js",
-    "qa:critical": "node --test test/architecture.test.js test/business-rules.test.js test/http-contract.test.js",
+    "qa:critical": "node --test test/architecture.test.js test/business-rules.test.js test/operational-rules.test.js test/security-config.test.js test/ui-contract.test.js test/http-contract.test.js",
     "qa:production": "npm run qa:static && npm run qa:critical && npm test",
     "ensure:indexes": "node scripts/run-with-runtime.js scripts/ensure-indexes.js",
     "qa:preinstall": "node scripts/preinstall-qa.js"
