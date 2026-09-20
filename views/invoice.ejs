@@ -34,7 +34,7 @@
         </div>
       </div>
     </div>
-    <script>function invoicePage(){return{invoice:{},error:'',async load(){try{const id=location.pathname.split('/').pop();this.invoice=(await apiFetch('/api/finance/invoices/'+encodeURIComponent(id))).data||{};}catch(e){this.error=e.message;showCrmToast(e.message,'error')}}}}</script>
+    <script nonce="<%= cspNonce %>">function invoicePage(){return{invoice:{},error:'',async load(){try{const id=location.pathname.split('/').pop();this.invoice=(await apiFetch('/api/finance/invoices/'+encodeURIComponent(id))).data||{};}catch(e){this.error=e.message;showCrmToast(e.message,'error')}}}}</script>
     <%- include('partials/scripts') %>
   </body>
 </html>
