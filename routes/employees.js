@@ -1,0 +1,1 @@
+const r=require("express").Router();const c=require("../controllers/masterController");const {requirePermission}=require("../middleware/auth");r.get("/",requirePermission("employees.view"),c.employeeList);r.post("/",requirePermission("employees.create"),c.employeeCreate);r.put("/:id",requirePermission("employees.edit"),c.employeeUpdate);module.exports=r;
