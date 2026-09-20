@@ -1,1 +1,101 @@
-<!doctype html><html><head><%- include('partials/head') %></head><body><div class="app-shell"><%- include('partials/sidebar') %><main class="main"><%- include('partials/navbar') %><div class="content"><div x-data="dash()" x-init="load()"><div class="alert alert-danger" x-show="error" x-text="error" x-cloak></div><div class="row g-3"><template x-for="m in metrics" :key="m.label"><div class="col-6 col-xl-3"><div class="card metric h-100"><div class="card-body"><div class="text-secondary small" x-text="m.label"></div><div class="fs-3 fw-bold mt-1" x-text="m.value"></div></div></div></div></template></div><div class="card mt-4"><div class="card-header fw-semibold">Recent sales orders</div><div class="scroll-table"><table class="table mb-0"><thead><tr><th>Order</th><th>Customer</th><th>Status</th><th>Total</th></tr></thead><tbody><template x-for="o in data.recentOrders||[]"><tr><td x-text="o.orderNumber"></td><td x-text="o.customerSnapshot?.businessName"></td><td><span class="badge text-bg-light" x-text="o.status"></span></td><td x-text="money(o.totalPaise)"></td></tr></template></tbody></table></div></div></div></div></main></div><%- include('partials/scripts') %><script nonce="<%= cspNonce %>">function dash(){return{data:{},error:'',get metrics(){return[{label:'Today orders',value:this.data.todayOrders||0},{label:'Pending procurement',value:this.data.pendingProcurement||0},{label:'Ready dispatch',value:this.data.readyDispatch||0},{label:'Pending price approvals',value:this.data.pendingPrices||0},{label:'Overdue receivables',value:money(this.data.overdueReceivablePaise||0)},{label:'Overdue payables',value:money(this.data.overduePayablePaise||0)},{label:'Low / zero stock',value:this.data.lowStockCount||0}]},async load(){try{this.data=(await apiFetch('/api/dashboard')).data}catch(e){this.error=e.message}}}}</script></body></html>
+<!doctype html>
+<html lang="en" dir="ltr">
+  <%- include('partials/head') %>
+  <body x-data="crmShell()" x-init="initShell()">
+    <%- include('partials/navbar') %>
+    <div class="page-content">
+      <%- include('partials/sidebar') %>
+      <div class="content-wrapper">
+        <div class="content-inner">
+          <div class="page-header page-header-light crm-page-header">
+            <div class="page-header-content crm-page-heading">
+              <div>
+                <div class="crm-page-eyebrow">Overview</div>
+                <h1 class="page-title mb-1">Dashboard</h1>
+                <p class="crm-page-subtitle mb-0">Monitor B2B orders, procurement, dispatch, receivables and payables.</p>
+              </div>
+              <% if (can('orders.create')) { %>
+                <a href="/orders" class="btn btn-primary crm-primary-action">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                  Create sales order
+                </a>
+              <% } %>
+            </div>
+          </div>
+          <div class="content">
+            <div x-show="shellError" x-cloak class="alert alert-danger" x-text="shellError"></div>
+            <main x-data="dashboardPage()" x-init="load()">
+              <div x-show="error" x-cloak class="alert alert-danger" x-text="error"></div>
+
+              <section class="crm-metric-grid mb-4" aria-label="B2B dashboard totals">
+                <article class="crm-metric-card crm-metric-blue">
+                  <div class="crm-metric-top"><div><span class="crm-metric-label">Today's orders</span><strong class="crm-metric-value" x-text="number(data.todayOrders)">0</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span></div>
+                  <div class="crm-metric-note">Sales orders created today</div>
+                </article>
+                <article class="crm-metric-card crm-metric-purple">
+                  <div class="crm-metric-top"><div><span class="crm-metric-label">Pending procurement</span><strong class="crm-metric-value" x-text="number(data.pendingProcurement)">0</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><path d="M4 7h16l-2 12H6L4 7Z"/><path d="M8 7a4 4 0 0 1 8 0"/></svg></span></div>
+                  <div class="crm-metric-note">Orders waiting on sourcing</div>
+                </article>
+                <article class="crm-metric-card crm-metric-green">
+                  <div class="crm-metric-top"><div><span class="crm-metric-label">Ready to dispatch</span><strong class="crm-metric-value" x-text="number(data.readyDispatch)">0</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><path d="M3 6h11v10H3zM14 9h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg></span></div>
+                  <div class="crm-metric-note">Packed orders ready for delivery</div>
+                </article>
+                <article class="crm-metric-card crm-metric-amber">
+                  <div class="crm-metric-top"><div><span class="crm-metric-label">Price approvals</span><strong class="crm-metric-value" x-text="number(data.pendingPrices)">0</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5M16 16h.01"/></svg></span></div>
+                  <div class="crm-metric-note">Negotiated prices awaiting approval</div>
+                </article>
+              </section>
+
+              <section class="crm-metric-grid mb-4" aria-label="B2B finance totals">
+                <article class="crm-metric-card crm-metric-blue"><div class="crm-metric-top"><div><span class="crm-metric-label">Overdue receivables</span><strong class="crm-metric-value" x-text="money(data.overdueReceivablePaise)">₹0.00</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><path d="M6 4h12M6 8h12M8 4c7 0 7 9 0 9H7l8 7"/></svg></span></div><div class="crm-metric-note">Customer collections overdue</div></article>
+                <article class="crm-metric-card crm-metric-purple"><div class="crm-metric-top"><div><span class="crm-metric-label">Overdue payables</span><strong class="crm-metric-value" x-text="money(data.overduePayablePaise)">₹0.00</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><path d="M6 4h12M6 8h12M8 4c7 0 7 9 0 9H7l8 7"/></svg></span></div><div class="crm-metric-note">Supplier payments overdue</div></article>
+                <article class="crm-metric-card crm-metric-amber"><div class="crm-metric-top"><div><span class="crm-metric-label">Low / zero stock</span><strong class="crm-metric-value" x-text="number(data.lowStockCount)">0</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v14H4z"/><path d="M4 10h16M9 14h6"/></svg></span></div><div class="crm-metric-note">Inventory balances needing attention</div></article>
+              </section>
+
+              <section class="crm-dashboard-grid">
+                <div class="card crm-data-card">
+                  <div class="card-header crm-card-heading">
+                    <div><h2 class="card-title mb-1">Recent sales orders</h2><p class="text-muted mb-0">Latest B2B customer orders created by the Findoly team.</p></div>
+                    <a href="/orders" class="btn btn-light btn-sm">View all orders</a>
+                  </div>
+                  <div class="table-responsive">
+                    <table class="table crm-table mb-0">
+                      <thead><tr><th>Order</th><th>Customer</th><th>Status</th><th class="text-end">Total</th><th>Created</th></tr></thead>
+                      <tbody>
+                        <template x-if="loading"><tr><td colspan="5"><div class="crm-table-loading"><span></span><span></span><span></span></div></td></tr></template>
+                        <template x-for="order in (data.recentOrders || [])" :key="order.salesOrderId">
+                          <tr>
+                            <td><a class="crm-record-title" href="/orders" x-text="order.orderNumber"></a><div class="crm-record-id" x-text="order.salesOrderId"></div></td>
+                            <td><div class="fw-semibold" x-text="order.customerSnapshot?.businessName || '—'"></div><div class="text-muted fs-sm" x-text="order.customerSnapshot?.mobile || ''"></div></td>
+                            <td><span class="crm-status" :class="statusClass(order.status)" x-text="humanize(order.status)"></span></td>
+                            <td class="text-end fw-semibold" x-text="money(order.totalPaise)"></td>
+                            <td class="crm-nowrap" x-text="formatDateOnly(order.createdAt)"></td>
+                          </tr>
+                        </template>
+                        <tr x-show="!loading && !(data.recentOrders || []).length"><td colspan="5"><div class="crm-empty-state"><span class="crm-empty-icon"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><strong>No sales orders yet</strong><span>Create the first B2B order to start the workflow.</span><a href="/orders" class="btn btn-primary btn-sm">Create sales order</a></div></td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <aside class="card crm-quick-card">
+                  <div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Quick actions</h2><p class="text-muted mb-0">Common B2B operations.</p></div></div>
+                  <div class="crm-quick-actions">
+                    <a href="/orders"><span><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span><div><strong>Create sales order</strong><small>Record a customer order</small></div><b>›</b></a>
+                    <a href="/procurement"><span><svg viewBox="0 0 24 24"><path d="M4 7h16l-2 12H6L4 7Z"/></svg></span><div><strong>Open procurement</strong><small>Purchase and receive stock</small></div><b>›</b></a>
+                    <a href="/inventory"><span><svg viewBox="0 0 24 24"><path d="M4 6h16v14H4zM4 10h16"/></svg></span><div><strong>Review inventory</strong><small>Check warehouse stock</small></div><b>›</b></a>
+                    <a href="/finance"><span><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 9h16"/></svg></span><div><strong>Open finance</strong><small>Receivables and payables</small></div><b>›</b></a>
+                  </div>
+                </aside>
+              </section>
+            </main>
+          </div>
+          <%- include('partials/footer') %>
+        </div>
+      </div>
+    </div>
+    <script>
+      function dashboardPage(){return{data:{},loading:true,error:'',number(v){return new Intl.NumberFormat('en-IN').format(Number(v||0));},async load(){this.loading=true;try{this.data=(await apiFetch('/api/dashboard')).data||{};}catch(e){this.error=e.message;}finally{this.loading=false;}}}}
+    </script>
+    <%- include('partials/scripts') %>
+  </body>
+</html>
