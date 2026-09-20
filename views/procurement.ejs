@@ -77,7 +77,7 @@
                     <td x-text="(po.lines||[]).length"></td>
                     <td class="text-end fw-semibold" x-text="money(poValue(po))"></td>
                     <td class="text-end crm-table-actions">
-                      <% if (can('procurement.approve')) { %><button x-show="po.status==='draft'" class="btn btn-sm btn-outline-primary" @click="approvePo(po)">Approve</button><% } %>
+                      <% if (can('procurement.approve')) { %><button x-show="po.status==='draft'" class="btn btn-sm btn-outline-primary" @click="openApproval(po)">Approve</button><% } %>
                       <% if (can('procurement.receive')) { %><button x-show="['approved','placed','partially_received'].includes(po.status)" class="btn btn-sm btn-primary" @click="openReceive(po)">Receive / GRN</button><% } %>
                     </td>
                   </tr>
@@ -88,7 +88,22 @@
           </div>
         </div>
 
-        <% if (can('procurement.receive')) { %>
+        <% if (can('procurement.approve')) { %>
+<div class="card crm-data-card mt-4" x-show="approvalPo" x-cloak>
+  <div class="card-header crm-card-heading">
+    <div><h2 class="card-title mb-1">Approve purchase order</h2><p class="text-muted mb-0" x-text="approvalPo?.poNumber+' · '+approvalPo?.supplierName"></p></div>
+    <button class="btn btn-light btn-sm" @click="approvalPo=null">Close</button>
+  </div>
+  <div class="card-body">
+    <div class="alert alert-info mb-3">Approval marks the ordered quantities as incoming stock for the selected warehouse.</div>
+    <div class="d-flex justify-content-between align-items-center">
+      <div><div class="text-muted fs-sm">Purchase value</div><div class="fs-4 fw-bold" x-text="money(poValue(approvalPo))"></div></div>
+      <button class="btn btn-primary" @click="approvePo()" :disabled="saving">Approve purchase order</button>
+    </div>
+  </div>
+</div>
+<% } %>
+<% if (can('procurement.receive')) { %>
         <div class="card crm-data-card mt-4" x-show="receive.po" x-cloak>
           <div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Receive goods / GRN</h2><p class="text-muted mb-0"><span x-text="receive.po?.poNumber"></span> · <span x-text="receive.po?.supplierName"></span></p></div><button class="btn btn-light btn-sm" @click="receive={po:null,lines:[],supplierInvoiceNumber:'',supplierInvoiceDate:'',taxableRupees:0,cgstRupees:0,sgstRupees:0,igstRupees:0,cessRupees:0,totalInvoiceRupees:0,itcStatus:'pending'}">Close</button></div>
           <div class="card-body">
@@ -115,7 +130,7 @@
 </div>
 <script nonce="<%= cspNonce %>">
 function procurementPage(){return{
-  orders:[],suppliers:[],supplierLocations:[],products:[],warehouses:[],loading:true,saving:false,error:'',showForm:false,statusFilter:'',
+  orders:[],suppliers:[],supplierLocations:[],products:[],warehouses:[],loading:true,saving:false,error:'',showForm:false,statusFilter:'',approvalPo:null,
   form:{supplierId:'',supplierLocationId:'',warehouseId:'',expectedAt:'',paymentTermDays:0,paymentTerms:'',notes:'',lines:[]},
   receive:{po:null,lines:[],supplierInvoiceNumber:'',supplierInvoiceDate:'',taxableRupees:0,cgstRupees:0,sgstRupees:0,igstRupees:0,cessRupees:0,totalInvoiceRupees:0,itcStatus:'pending'},
   newLine(){return{key:crypto.randomUUID(),productId:'',quantity:1,purchasePriceRupees:0,gstPercent:18}},
@@ -129,7 +144,8 @@ function procurementPage(){return{
   async createPo(){this.error='';if(!this.form.supplierId||!this.form.supplierLocationId||!this.form.warehouseId)return this.error='Supplier, supplier location and warehouse are required.';if(this.form.lines.some(x=>!x.productId||Number(x.quantity)<1))return this.error='Complete every purchase order line.';this.saving=true;try{await apiFetch('/api/procurement',{method:'POST',body:JSON.stringify({...this.form,lines:this.form.lines.map(x=>({productId:x.productId,quantity:Number(x.quantity),unitPurchasePricePaise:this.paise(x.purchasePriceRupees),gstRateBps:this.bps(x.gstPercent)}))})});showCrmToast('Purchase order created');this.resetForm();await this.loadOrders()}catch(e){this.error=e.message;showCrmToast(e.message,'error')}finally{this.saving=false}},
   poValue(po){return(po.lines||[]).reduce((s,l)=>s+Number(l.unitPurchasePricePaise||0)*Number(l.quantity||0),0)},
   warehouseName(id){return this.warehouses.find(x=>x.warehouseId===id)?.name||id},
-  async approvePo(po){if(!confirm('Approve '+po.poNumber+'?'))return;try{await apiFetch('/api/procurement/'+po.purchaseOrderId+'/approve',{method:'POST',body:'{}'});showCrmToast('Purchase order approved');await this.loadOrders()}catch(e){this.error=e.message}},
+  openApproval(po){this.approvalPo=po;this.receive.po=null;this.$nextTick(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}))},
+async approvePo(){const po=this.approvalPo;if(!po)return;this.saving=true;try{await apiFetch('/api/procurement/'+po.purchaseOrderId+'/approve',{method:'POST',body:'{}'});showCrmToast('Purchase order approved');this.approvalPo=null;await this.loadOrders()}catch(e){this.error=e.message;showCrmToast(e.message,'error')}finally{this.saving=false}},
   openReceive(po){this.receive={po,lines:(po.lines||[]).map(l=>({purchaseOrderLineId:l.purchaseOrderLineId,productName:l.productName,sku:l.sku,outstandingQty:Number(l.quantity||0)-Number(l.receivedQuantity||0),receivedQty:Number(l.quantity||0)-Number(l.receivedQuantity||0),acceptedQty:Number(l.quantity||0)-Number(l.receivedQuantity||0),damagedQty:0,rejectedQty:0,shortQty:0})),supplierInvoiceNumber:'',supplierInvoiceDate:'',taxableRupees:0,cgstRupees:0,sgstRupees:0,igstRupees:0,cessRupees:0,totalInvoiceRupees:0,itcStatus:'pending'};setTimeout(()=>this.$el.scrollIntoView({behavior:'smooth',block:'end'}),50)},
   syncAccepted(line){line.acceptedQty=Math.max(0,Number(line.receivedQty||0)-Number(line.damagedQty||0)-Number(line.rejectedQty||0))},
   async submitReceipt(){if(!this.receive.po)return;this.saving=true;try{const body={lines:this.receive.lines.map(l=>({purchaseOrderLineId:l.purchaseOrderLineId,receivedQty:Number(l.receivedQty||0),acceptedQty:Number(l.acceptedQty||0),damagedQty:Number(l.damagedQty||0),rejectedQty:Number(l.rejectedQty||0),shortQty:Number(l.shortQty||0)})),supplierInvoiceNumber:this.receive.supplierInvoiceNumber,supplierInvoiceDate:this.receive.supplierInvoiceDate||null,taxablePaise:this.paise(this.receive.taxableRupees),cgstPaise:this.paise(this.receive.cgstRupees),sgstPaise:this.paise(this.receive.sgstRupees),igstPaise:this.paise(this.receive.igstRupees),cessPaise:this.paise(this.receive.cessRupees),totalInvoicePaise:this.paise(this.receive.totalInvoiceRupees),itcStatus:this.receive.itcStatus};await apiFetch('/api/procurement/'+this.receive.po.purchaseOrderId+'/receive',{method:'POST',body:JSON.stringify(body)});showCrmToast('Goods receipt recorded');this.receive.po=null;await this.loadOrders()}catch(e){this.error=e.message;showCrmToast(e.message,'error')}finally{this.saving=false}}
