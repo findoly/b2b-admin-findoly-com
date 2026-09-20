@@ -1,1 +1,47 @@
-<header class="topbar d-flex align-items-center justify-content-between"><div><div class="page-title"><%= title %></div><div class="page-subtitle"><%= subtitle || '' %></div></div><div class="d-flex align-items-center gap-3"><div class="text-end d-none d-sm-block"><div class="fw-semibold"><%= currentAdmin?.name || '' %></div><div class="small text-secondary"><%= currentAdmin?.roleName || '' %></div></div><button class="btn btn-sm btn-outline-secondary" onclick="logoutB2BAdmin()">Sign out</button></div></header>
+<%
+  const canAccess = typeof can === 'function' ? can : () => true;
+%>
+<div class="navbar navbar-expand-lg navbar-static crm-topbar">
+  <div class="container-fluid px-3 px-lg-4">
+    <button type="button" class="crm-mobile-menu d-lg-none me-2" @click="sidebarOpen = true" :aria-expanded="sidebarOpen.toString()" aria-controls="crmPrimaryNavigation" aria-label="Open navigation">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <div class="navbar-brand flex-1 flex-lg-0 me-lg-4">
+      <a href="/dashboard" class="crm-brand-link" aria-label="Findoly B2B Admin home">
+        <img src="/images/findoly-logo.png" alt="Findoly" class="crm-brand-logo">
+        <span class="crm-brand-copy d-none d-xl-flex"><strong><%= appName %></strong><small>B2B distribution</small></span>
+      </a>
+    </div>
+    <ul class="nav flex-row align-items-center gap-2 ms-auto">
+      <li class="nav-item">
+        <button type="button" class="crm-topbar-icon" data-crm-appearance-open aria-label="Appearance settings" title="Appearance">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18h1.25a1.75 1.75 0 0 0 0-3.5H12a1.5 1.5 0 0 1 0-3h2.25A6.75 6.75 0 0 0 21 7.75 4.75 4.75 0 0 0 16.25 3Z"/><circle cx="7.5" cy="10" r=".8"/><circle cx="10" cy="6.8" r=".8"/><circle cx="14" cy="6.5" r=".8"/></svg>
+        </button>
+      </li>
+      <li class="nav-item dropdown crm-admin-dropdown-wrap">
+        <button type="button" class="crm-admin-menu" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+          <span class="crm-admin-avatar" x-text="(admin.name || admin.mobile || 'E').charAt(0).toUpperCase()">A</span>
+          <span class="crm-admin-copy d-none d-xl-flex"><strong x-text="admin.name || 'Admin'">Admin</strong><small x-text="admin.roleName || admin.mobile || 'Employee'">Administrator</small></span>
+          <svg class="crm-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
+        </button>
+        <div class="dropdown-menu dropdown-menu-end crm-admin-dropdown">
+          <div class="px-3 py-2 border-bottom"><div class="fw-semibold" x-text="admin.name || 'Admin'">Admin</div><div class="text-muted fs-sm" x-text="admin.mobile ? '+91 '+admin.mobile : admin.email"></div><div class="text-muted fs-sm" x-text="admin.roleName || 'Employee'"></div></div>
+          <button type="button" class="dropdown-item text-danger" @click="logout()"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>Sign out</button>
+        </div>
+      </li>
+    </ul>
+  </div>
+</div>
+<div class="crm-appearance-backdrop" data-crm-appearance-backdrop hidden></div>
+<aside class="crm-appearance-panel" data-crm-appearance-panel aria-hidden="true" aria-label="Appearance settings">
+  <div class="crm-appearance-panel-header"><div><h5 class="mb-1">Appearance settings</h5><div class="text-muted fs-sm">Saved in this browser for this employee profile.</div></div><button type="button" class="btn btn-light btn-icon rounded-pill" data-crm-appearance-close aria-label="Close appearance settings"><svg class="crm-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="crm-appearance-panel-body"><section class="crm-appearance-section"><div class="crm-appearance-section-title">Dashboard themes</div><div class="text-muted fs-sm mb-2">Choose the same Findoly CRM appearance presets.</div><div class="crm-theme-presets crm-theme-presets-featured">
+    <button type="button" class="crm-theme-preset crm-theme-preset-five" data-appearance-preset="facebookLight" data-preset-label="Facebook light"><span style="--preset-1:#ffffff;--preset-2:#1877f2;--preset-3:#f0f2f5;--preset-4:#e7f3ff;--preset-5:#1c1e21"></span><b>Facebook light</b></button>
+    <button type="button" class="crm-theme-preset crm-theme-preset-five" data-appearance-preset="whiteBlack" data-preset-label="White and black"><span style="--preset-1:#ffffff;--preset-2:#f8fafc;--preset-3:#f4f5f7;--preset-4:#111827;--preset-5:#dfe3e8"></span><b>White &amp; black</b></button>
+    <button type="button" class="crm-theme-preset crm-theme-preset-five" data-appearance-preset="linkedin" data-preset-label="LinkedIn professional"><span style="--preset-1:#ffffff;--preset-2:#0a66c2;--preset-3:#f3f2ef;--preset-4:#e8f3ff;--preset-5:#191919"></span><b>LinkedIn professional</b></button>
+    <button type="button" class="crm-theme-preset crm-theme-preset-five" data-appearance-preset="tealProfessional" data-preset-label="Teal professional"><span style="--preset-1:#ffffff;--preset-2:#0f766e;--preset-3:#f7faf9;--preset-4:#ccfbf1;--preset-5:#17332f"></span><b>Teal professional</b></button>
+    <button type="button" class="crm-theme-preset crm-theme-preset-five" data-appearance-preset="practo" data-preset-label="Practo style"><span style="--preset-1:#28328c;--preset-2:#14bef0;--preset-3:#f4f8fb;--preset-4:#ffffff;--preset-5:#2d2d32"></span><b>Practo style</b></button>
+    <button type="button" class="crm-theme-preset crm-theme-preset-five" data-appearance-preset="softBlue" data-preset-label="Soft blue"><span style="--preset-1:#f2f6fc;--preset-2:#5b7fb5;--preset-3:#f6f9fd;--preset-4:#dfeaf8;--preset-5:#26364d"></span><b>Soft blue</b></button>
+  </div></section></div>
+  <div class="crm-appearance-panel-footer"><span class="crm-appearance-status" data-appearance-status>Saved in this browser</span><button type="button" class="btn btn-light" data-appearance-reset>Restore Facebook light</button><button type="button" class="btn btn-primary" data-crm-appearance-close>Done</button></div>
+</aside>
