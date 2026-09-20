@@ -1,1 +1,34 @@
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><%= title %> · Findoly B2B Admin</title><link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css"><link rel="stylesheet" href="/assets/css/app.css">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title><%= title ? title + ' · ' : '' %><%= appName %></title>
+  <link rel="icon" type="image/png" href="/images/findoly-logo.png">
+  <script>
+    (function restoreSidebarBeforePaint() {
+      const storageKey = 'leadops.crm.sidebar.collapsed.v1';
+      const root = document.documentElement;
+      root.classList.add('crm-sidebar-no-transition');
+      try {
+        const isDesktop = window.matchMedia('(min-width: 992px)').matches;
+        const isCollapsed = window.localStorage.getItem(storageKey) === '1';
+        root.classList.toggle('crm-sidebar-saved-collapsed', isDesktop && isCollapsed);
+      } catch (_) { root.classList.remove('crm-sidebar-saved-collapsed'); }
+      window.addEventListener('load', () => root.classList.remove('crm-sidebar-no-transition'), { once: true });
+    })();
+  </script>
+  <script>
+    window.__crmServerUser = <%- JSON.stringify(((typeof currentAdmin !== "undefined") && currentAdmin && (currentAdmin.employeeId || currentAdmin.mobile)) || "guest").replace(/</g, "\\u003c") %>;
+    document.documentElement.dataset.crmUser = window.__crmServerUser;
+  </script>
+  <link href="/css/inter.css" rel="stylesheet" type="text/css">
+  <link href="/css/styles.min.css" rel="stylesheet" type="text/css">
+  <link href="/css/all.min.css" rel="stylesheet" type="text/css">
+  <link href="/css/app.css?v=20260920-b2b-admin-ui-1" rel="stylesheet" type="text/css">
+  <link href="/css/mobile-filters.css?v=20260920-b2b-admin-ui-1" rel="stylesheet" type="text/css">
+  <script src="/js/appearance.js"></script>
+  <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js?v=5.3.8" defer></script>
+  <script src="/js/mobile-filters.js?v=20260920-b2b-admin-ui-1" defer></script>
+  <script src="/js/crm-ui-runtime.js?v=20260920-b2b-admin-ui-1" defer></script>
+  <style>[x-cloak]{display:none!important}.api-error{white-space:pre-wrap}.crm-loading{opacity:.55;pointer-events:none}.crm-table-actions{white-space:nowrap}.crm-filter-toolbar .form-control,.crm-filter-toolbar .form-select{min-height:38px}.crm-stat-value{font-size:1.65rem;font-weight:700}.crm-json{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem;white-space:pre-wrap}</style>
+</head>
