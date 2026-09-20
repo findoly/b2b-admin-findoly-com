@@ -1,0 +1,18 @@
+<aside class="sidebar"><div class="brand">Findoly B2B Admin</div><nav class="py-2">
+<% if (can('dashboard.view')) { %><a class="<%= currentPath==='/dashboard'?'active':'' %>" href="/dashboard">Dashboard</a><% } %>
+<% if (can('customers.view')) { %><a class="<%= currentPath.startsWith('/customers')?'active':'' %>" href="/customers">Customers</a><% } %>
+<% if (can('products.view')) { %><a class="<%= currentPath.startsWith('/products')?'active':'' %>" href="/products">Products</a><% } %>
+<% if (can('suppliers.view')) { %><a class="<%= currentPath.startsWith('/suppliers')?'active':'' %>" href="/suppliers">Suppliers</a><% } %>
+<% if (can('pricing.view')) { %><a class="<%= currentPath.startsWith('/pricing')?'active':'' %>" href="/pricing">Customer Pricing</a><% } %>
+<% if (can('procurement.view')) { %><a class="<%= currentPath.startsWith('/procurement')?'active':'' %>" href="/procurement">Procurement</a><% } %>
+<% if (can('inventory.view')) { %><a class="<%= currentPath.startsWith('/inventory')?'active':'' %>" href="/inventory">Inventory</a><a class="<%= currentPath.startsWith('/warehouses')?'active':'' %>" href="/warehouses">Warehouses</a><% } %>
+<% if (can('orders.view')) { %><a class="<%= currentPath.startsWith('/orders')?'active':'' %>" href="/orders">Sales Orders</a><% } %>
+<% if (can('delivery.view')) { %><a class="<%= currentPath.startsWith('/delivery')?'active':'' %>" href="/delivery">Delivery</a><% } %>
+<% if (can('finance.view')) { %><a class="<%= currentPath.startsWith('/finance')||currentPath.startsWith('/invoices')?'active':'' %>" href="/finance">Finance</a><% } %>
+<% if (can('returns.view')) { %><a class="<%= currentPath.startsWith('/returns')?'active':'' %>" href="/returns">Returns</a><% } %>
+<% if (can('reports.view')) { %><a class="<%= currentPath.startsWith('/reports')?'active':'' %>" href="/reports">Reports</a><% } %>
+<% if (can('storage.view')) { %><a class="<%= currentPath.startsWith('/storage')?'active':'' %>" href="/storage">File Manager</a><% } %>
+<% if (can('employees.view')) { %><a class="<%= currentPath.startsWith('/employees')?'active':'' %>" href="/employees">Employees</a><% } %>
+<% if (can('roles.view')) { %><a class="<%= currentPath.startsWith('/roles')?'active':'' %>" href="/roles">Roles & Permissions</a><% } %>
+<% if (can('audit.view')) { %><a class="<%= currentPath.startsWith('/audit')?'active':'' %>" href="/audit">Audit Trail</a><% } %>
+</nav></aside>
