@@ -93,7 +93,7 @@
         </div>
       </div>
     </div>
-    <script>
+    <script nonce="<%= cspNonce %>">
       function dashboardPage(){return{data:{},loading:true,error:'',number(v){return new Intl.NumberFormat('en-IN').format(Number(v||0));},async load(){this.loading=true;try{this.data=(await apiFetch('/api/dashboard')).data||{};}catch(e){this.error=e.message;}finally{this.loading=false;}}}}
     </script>
     <%- include('partials/scripts') %>
