@@ -4,7 +4,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <title><%= title ? title + ' · ' : '' %><%= appName %></title>
   <link rel="icon" type="image/png" href="/images/findoly-logo.png">
-  <script>
+  <script nonce="<%= cspNonce %>">
     (function restoreSidebarBeforePaint() {
       const storageKey = 'leadops.crm.sidebar.collapsed.v1';
       const root = document.documentElement;
@@ -17,7 +17,7 @@
       window.addEventListener('load', () => root.classList.remove('crm-sidebar-no-transition'), { once: true });
     })();
   </script>
-  <script>
+  <script nonce="<%= cspNonce %>">
     window.__crmServerUser = <%- JSON.stringify(((typeof currentAdmin !== "undefined") && currentAdmin && (currentAdmin.employeeId || currentAdmin.mobile)) || "guest").replace(/</g, "\\u003c") %>;
     document.documentElement.dataset.crmUser = window.__crmServerUser;
   </script>
