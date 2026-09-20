@@ -1,0 +1,1 @@
+const r=require("express").Router();const c=require("../controllers/warehouseController");const {requirePermission}=require("../middleware/auth");r.get("/",requirePermission("inventory.view"),c.list);r.post("/",requirePermission("warehouse.manage"),c.create);r.put("/:id",requirePermission("warehouse.manage"),c.update);module.exports=r;
