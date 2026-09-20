@@ -1,0 +1,1 @@
+const r=require("express").Router();const c=require("../controllers/storageController");const {requirePermission}=require("../middleware/auth");r.get("/config",requirePermission("storage.view"),c.config);r.post("/upload-url",requirePermission("storage.manage"),c.upload);r.post("/download-url",requirePermission("storage.view"),c.download);module.exports=r;
