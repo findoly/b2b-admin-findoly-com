@@ -1,0 +1,1 @@
+const r=require("express").Router();const c=require("../controllers/operationsController");const {requirePermission}=require("../middleware/auth");r.get("/",requirePermission("delivery.view"),c.deliveryList);r.post("/",requirePermission("delivery.assign"),c.deliveryAssign);r.post("/:id/status",requirePermission("delivery.update"),c.deliveryStatus);module.exports=r;
