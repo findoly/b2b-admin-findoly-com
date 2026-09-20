@@ -7,7 +7,7 @@ Architecture follows the reference `admin-findoly-com`: EJS page shells, Alpine 
 ## Setup
 ```bash
 cp .env.example .env
-npm install
+npm install --no-package-lock
 npm run qa:production
 npm start
 ```
