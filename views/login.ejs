@@ -1,1 +1,55 @@
-<!doctype html><html><head><%- include('partials/head') %></head><body><main class="login-wrap" x-data="loginApp()"><div class="login-card card"><div class="card-body p-4"><div class="mb-4"><h2 class="h4 mb-1">Findoly B2B Admin</h2><p class="text-secondary mb-0">Employee OTP access</p></div><div class="alert alert-danger" x-show="error" x-text="error" x-cloak></div><div x-show="step===1"><label class="form-label">Mobile number</label><input class="form-control form-control-lg" x-model="mobile" inputmode="numeric" maxlength="10"><button class="btn btn-primary w-100 mt-3" @click="send" :disabled="busy"><span x-text="busy?'Sending…':'Send OTP'"></span></button></div><div x-show="step===2" x-cloak><label class="form-label">OTP</label><input class="form-control form-control-lg" x-model="otp" inputmode="numeric" maxlength="8"><button class="btn btn-primary w-100 mt-3" @click="verify" :disabled="busy"><span x-text="busy?'Verifying…':'Verify & sign in'"></span></button><button class="btn btn-link w-100 mt-2" @click="step=1">Change mobile</button></div></div></div></main><script src="/assets/js/app.js"></script><script nonce="<%= cspNonce %>">function loginApp(){return{step:1,mobile:'',otp:'',busy:false,error:'',async send(){this.error='';this.busy=true;try{await apiFetch('/api/auth/send-otp',{method:'POST',body:JSON.stringify({mobile:this.mobile})});this.step=2}catch(e){this.error=e.message}finally{this.busy=false}},async verify(){this.error='';this.busy=true;try{await apiFetch('/api/auth/verify-otp',{method:'POST',body:JSON.stringify({mobile:this.mobile,otp:this.otp})});const q=new URLSearchParams(location.search);location.href=q.get('returnTo')||'/dashboard'}catch(e){this.error=e.message}finally{this.busy=false}}}}</script><script defer src="/vendor/alpinejs/cdn.min.js"></script></body></html>
+<!doctype html>
+<html lang="en" dir="ltr">
+  <%- include('partials/head') %>
+  <body class="login-cover" x-data="loginPage()">
+    <div class="page-content">
+      <div class="content-wrapper">
+        <div class="content-inner">
+          <div class="content d-flex justify-content-center align-items-center">
+            <form class="login-form" @submit.prevent="step === 'mobile' ? sendOtp() : verifyOtp()">
+              <div class="card mb-0 crm-otp-login-card">
+                <div class="card-body">
+                  <div class="text-center mb-4">
+                    <img src="/images/findoly-logo.png" alt="Findoly" class="crm-login-logo mx-auto mb-3">
+                    <h5 class="mb-1">B2B employee sign in</h5>
+                    <span class="d-block text-muted">Use your registered mobile number and OTP</span>
+                  </div>
+                  <div x-show="error" x-cloak class="alert alert-danger" x-text="error"></div>
+                  <div x-show="message" x-cloak class="alert alert-success" x-text="message"></div>
+                  <div class="mb-3">
+                    <label class="form-label">Mobile number</label>
+                    <div class="input-group">
+                      <span class="input-group-text">+91</span>
+                      <input class="form-control" type="tel" inputmode="numeric" autocomplete="tel" maxlength="10" placeholder="Enter 10-digit mobile" x-model="form.mobile" @input="form.mobile = digits(form.mobile)" :readonly="step === 'otp'" required>
+                    </div>
+                  </div>
+                  <template x-if="step === 'otp'">
+                    <div>
+                      <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                          <label class="form-label mb-0">One-time password</label>
+                          <button type="button" class="btn btn-link btn-sm p-0" @click="changeMobile()">Change mobile</button>
+                        </div>
+                        <input class="form-control crm-otp-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="Enter OTP" x-model="form.otp" @input="form.otp = String(form.otp || '').replace(/\D/g, '').slice(0, 8)" required>
+                      </div>
+                      <div class="d-flex justify-content-between align-items-center mb-3 fs-sm">
+                        <span class="text-muted">Secure employee session</span>
+                        <button type="button" class="btn btn-link btn-sm p-0" :disabled="loading" @click="sendOtp(true)">Resend OTP</button>
+                      </div>
+                    </div>
+                  </template>
+                  <button class="btn btn-primary w-100" :disabled="loading"><span x-text="loading ? (step === 'mobile' ? 'Sending OTP…' : 'Verifying…') : (step === 'mobile' ? 'Send OTP' : 'Verify and sign in')"></span></button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      function safeReturnTo(value){const target=String(value||'/dashboard').trim();if(!target.startsWith('/')||target.startsWith('//')||/[\\\u0000-\u001f\u007f]/.test(target))return'/dashboard';try{const parsed=new URL(target,location.origin);return parsed.origin===location.origin?parsed.pathname+parsed.search+parsed.hash:'/dashboard'}catch(_){return'/dashboard'}}
+      function loginPage(){return{step:'mobile',form:{mobile:'',otp:''},loading:false,error:'',message:'',returnTo:safeReturnTo(new URLSearchParams(location.search).get('returnTo')),digits(v){return String(v||'').replace(/\D/g,'').slice(-10)},async sendOtp(isResend=false){if(this.loading)return;this.error='';this.message='';if(!/^[6-9]\d{9}$/.test(this.form.mobile)){this.error='Enter a valid 10-digit Indian mobile number';return}this.loading=true;try{const r=await fetch('/api/auth/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mobile:this.form.mobile})});const b=await r.json().catch(()=>({}));if(!r.ok||b.success===false)throw new Error(b.message||'Unable to send OTP');this.step='otp';this.form.otp='';this.message=b.data?.message||(isResend?'A new OTP has been sent.':'OTP sent successfully.');this.$nextTick(()=>document.querySelector('.crm-otp-input')?.focus())}catch(e){this.error=e.message}finally{this.loading=false}},async verifyOtp(){if(this.loading)return;this.error='';this.message='';if(!/^\d{4,8}$/.test(this.form.otp)){this.error='Enter the OTP sent to your mobile';return}this.loading=true;try{const r=await fetch('/api/auth/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mobile:this.form.mobile,otp:this.form.otp})});const b=await r.json().catch(()=>({}));if(!r.ok||b.success===false)throw new Error(b.message||'OTP verification failed');location.href=this.returnTo}catch(e){this.error=e.message}finally{this.loading=false}},changeMobile(){this.step='mobile';this.form.otp='';this.error='';this.message=''}}}
+    </script>
+    <script defer src="/vendor/alpinejs/cdn.min.js"></script>
+  </body>
+</html>
