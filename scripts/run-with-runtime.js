@@ -1,0 +1,2 @@
+#!/usr/bin/env node
+"use strict";require("dotenv").config();const path=require("path");const {connectDb}=require("../config/db");async function main(){await connectDb();const script=process.argv[2];if(!script)throw new Error("Script path is required");require(path.resolve(__dirname,"..",script));}main().catch(e=>{console.error(e);process.exit(1)});
