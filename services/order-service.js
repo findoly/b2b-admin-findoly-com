@@ -6,5 +6,65 @@ async function create(input,admin){const customerId=requiredUuid(input.customerI
 async function approve(id,admin){if(!hasPermission(admin,"orders.approve"))throw Object.assign(new Error("Order approval permission is required"),{status:403});const order=await SalesOrder.findOneAndUpdate({salesOrderId:id,approvalStatus:"pending"},{$set:{approvalStatus:"approved",approvedBy:admin.employeeId,approvedAt:new Date(),updatedBy:admin.employeeId}},{new:true});if(!order)throw Object.assign(new Error("Pending order approval was not found"),{status:404});return order.toObject();}
 async function confirm(id,actor){const session=await mongoose.startSession();try{return await session.withTransaction(async()=>{const order=await SalesOrder.findOne({salesOrderId:id}).session(session);if(!order)throw Object.assign(new Error("Sales order not found"),{status:404});if(order.approvalStatus==="pending")throw Object.assign(new Error("Order requires approval before confirmation"),{status:409});if(!["created","draft"].includes(order.status))throw Object.assign(new Error("Order has already been confirmed"),{status:409});let shortage=false;for(const line of order.lines){const balance=await InventoryBalance.findOneAndUpdate({warehouseId:order.warehouseId,productId:line.productId},{$setOnInsert:{updatedBy:actor}},{upsert:true,new:true,session,setDefaultsOnInsert:true});const reserve=Math.min(Number(balance.availableQty||0),line.quantity);if(reserve>0){balance.availableQty-=reserve;balance.reservedQty+=reserve;balance.updatedBy=actor;await balance.save({session});await InventoryMovement.create([{warehouseId:order.warehouseId,productId:line.productId,movementType:"reserve",quantityDelta:reserve,bucket:"reserved",referenceType:"sales_order",referenceId:order.salesOrderId,reason:"Sales order confirmed",actorEmployeeId:actor}],{session});}if(reserve<line.quantity)shortage=true;}order.status=shortage?"procurement_required":"stock_ready";order.updatedBy=actor;await order.save({session});return order.toObject();});}finally{await session.endSession();}}
 async function allocate(id,input,actor){const order=await SalesOrder.findOne({salesOrderId:id}).lean();if(!order)throw Object.assign(new Error("Sales order not found"),{status:404});const line=order.lines.find(x=>x.salesOrderLineId===input.salesOrderLineId);if(!line)throw Object.assign(new Error("Order line not found"),{status:404});const[supplier,location,offer]=await Promise.all([Supplier.findOne({supplierId:input.supplierId,status:"active"}).lean(),SupplierLocation.findOne({supplierLocationId:input.supplierLocationId,supplierId:input.supplierId,active:true}).lean(),input.supplierProductOfferId?Offer.findOne({supplierProductOfferId:input.supplierProductOfferId,active:true}).lean():null]);if(!supplier||!location)throw Object.assign(new Error("Supplier or supplier location not found"),{status:404});const price=Number(input.purchasePricePaise??offer?.purchasePricePaise);if(!Number.isSafeInteger(price)||price<0)throw Object.assign(new Error("Purchase price is required"),{status:400});const item=await ProcurementAllocation.create({salesOrderId:id,salesOrderLineId:line.salesOrderLineId,productId:line.productId,supplierId:supplier.supplierId,supplierLocationId:location.supplierLocationId,supplierProductOfferId:offer?.supplierProductOfferId||"",quantity:positiveInteger(input.quantity,"Quantity"),purchasePricePaise:price,gstRateBps:Number(input.gstRateBps??offer?.gstRateBps??line.gstRateBps),supplierSnapshot:{businessName:supplier.businessName,gstin:supplier.gstin},supplierLocationSnapshot:{name:location.name,city:location.city,state:location.state,pincode:location.pincode},purchaseOrderId:String(input.purchaseOrderId||""),status:input.status||"planned",createdBy:actor});await SalesOrder.updateOne({salesOrderId:id},{$set:{status:"procurement_in_progress",updatedBy:actor}});return item.toObject();}
+
+async function reservedQuantityForOrderProduct(salesOrderId,productId,session){
+  const movements=await InventoryMovement.find({referenceType:"sales_order",referenceId:salesOrderId,productId,movementType:{$in:["reserve","release"]}}).session(session).lean();
+  let reserved=0;
+  for(const movement of movements){
+    if(movement.movementType==="reserve")reserved+=Number(movement.quantityDelta||0);
+    if(movement.movementType==="release")reserved-=Number(movement.quantityDelta||0);
+  }
+  return Math.max(0,reserved);
+}
+function quantityByProduct(lines){const map=new Map();for(const line of lines||[])map.set(line.productId,(map.get(line.productId)||0)+Number(line.quantity||0));return map;}
+async function recheckStock(id,actor){
+  const session=await mongoose.startSession();
+  try{return await session.withTransaction(async()=>{
+    const order=await SalesOrder.findOne({salesOrderId:id}).session(session);
+    if(!order)throw Object.assign(new Error("Sales order not found"),{status:404});
+    if(!["procurement_required","procurement_in_progress"].includes(order.status))throw Object.assign(new Error("Only procurement orders can recheck stock"),{status:409});
+    const required=quantityByProduct(order.lines);let allReserved=true;
+    for(const [productId,requiredQty] of required){
+      const alreadyReserved=await reservedQuantityForOrderProduct(order.salesOrderId,productId,session);
+      const needed=Math.max(0,requiredQty-alreadyReserved);
+      if(!needed)continue;
+      const balance=await InventoryBalance.findOneAndUpdate({warehouseId:order.warehouseId,productId},{$setOnInsert:{updatedBy:actor}},{upsert:true,new:true,session,setDefaultsOnInsert:true});
+      const reserve=Math.min(Number(balance.availableQty||0),needed);
+      if(reserve>0){
+        balance.availableQty-=reserve;balance.reservedQty+=reserve;balance.updatedBy=actor;await balance.save({session});
+        await InventoryMovement.create([{warehouseId:order.warehouseId,productId,movementType:"reserve",quantityDelta:reserve,bucket:"reserved",referenceType:"sales_order",referenceId:order.salesOrderId,reason:"Stock rechecked after procurement",actorEmployeeId:actor}],{session});
+      }
+      if(alreadyReserved+reserve<requiredQty)allReserved=false;
+    }
+    for(const [productId,requiredQty] of required){if(await reservedQuantityForOrderProduct(order.salesOrderId,productId,session)<requiredQty){allReserved=false;break;}}
+    const hasAllocation=Boolean(await ProcurementAllocation.exists({salesOrderId:id,status:{$ne:"cancelled"}}).session(session));
+    order.status=allReserved?"stock_ready":hasAllocation?"procurement_in_progress":"procurement_required";order.updatedBy=actor;await order.save({session});return order.toObject();
+  });}finally{await session.endSession();}
+}
+async function cancel(id,input,actor){
+  const session=await mongoose.startSession();
+  try{return await session.withTransaction(async()=>{
+    const order=await SalesOrder.findOne({salesOrderId:id}).session(session);
+    if(!order)throw Object.assign(new Error("Sales order not found"),{status:404});
+    const allowed=["draft","created","procurement_required","procurement_in_progress","stock_ready","picking","packed","ready_for_dispatch"];
+    if(!allowed.includes(order.status))throw Object.assign(new Error(`Order cannot be cancelled from ${order.status}`),{status:409});
+    const required=quantityByProduct(order.lines);let sourceField="";
+    if(["procurement_required","procurement_in_progress","stock_ready"].includes(order.status))sourceField="reservedQty";
+    else if(order.status==="picking")sourceField="pickedQty";
+    else if(["packed","ready_for_dispatch"].includes(order.status))sourceField="packedQty";
+    if(sourceField){
+      for(const [productId,totalQty] of required){
+        const releaseQty=sourceField==="reservedQty"?await reservedQuantityForOrderProduct(order.salesOrderId,productId,session):totalQty;
+        if(!releaseQty)continue;
+        const balance=await InventoryBalance.findOne({warehouseId:order.warehouseId,productId}).session(session);
+        if(!balance||Number(balance[sourceField]||0)<releaseQty)throw Object.assign(new Error("Inventory state is inconsistent; order cancellation was not applied"),{status:409});
+        balance[sourceField]-=releaseQty;balance.availableQty+=releaseQty;balance.updatedBy=actor;await balance.save({session});
+        await InventoryMovement.create([{warehouseId:order.warehouseId,productId,movementType:"release",quantityDelta:releaseQty,bucket:"available",referenceType:"sales_order",referenceId:order.salesOrderId,reason:"Sales order cancelled; stock released",actorEmployeeId:actor}],{session});
+      }
+    }
+    await ProcurementAllocation.updateMany({salesOrderId:id,status:{$in:["planned","ordered"]}},{$set:{status:"cancelled"}},{session});
+    order.status="cancelled";order.cancellationReason=String(input?.reason||"").trim().slice(0,1000);order.cancelledBy=actor;order.cancelledAt=new Date();order.updatedBy=actor;await order.save({session});return order.toObject();
+  });}finally{await session.endSession();}
+}
 async function advanceFulfilment(id,target,actor){const allowed={stock_ready:"picking",picking:"packed",packed:"ready_for_dispatch"};const order=await SalesOrder.findOne({salesOrderId:id});if(!order)throw Object.assign(new Error("Sales order not found"),{status:404});if(allowed[order.status]!==target)throw Object.assign(new Error(`Cannot move order from ${order.status} to ${target}`),{status:409});const session=await mongoose.startSession();try{return await session.withTransaction(async()=>{if(target==="picking"||target==="packed"){for(const line of order.lines){const balance=await InventoryBalance.findOne({warehouseId:order.warehouseId,productId:line.productId}).session(session);if(!balance)throw Object.assign(new Error("Inventory balance not found"),{status:409});if(target==="picking"){if(balance.reservedQty<line.quantity)throw Object.assign(new Error(`Reserved stock is insufficient for ${line.sku}`),{status:409});balance.reservedQty-=line.quantity;balance.pickedQty+=line.quantity;await InventoryMovement.create([{warehouseId:order.warehouseId,productId:line.productId,movementType:"pick",quantityDelta:line.quantity,bucket:"picked",referenceType:"sales_order",referenceId:order.salesOrderId,reason:"Order picked",actorEmployeeId:actor}],{session});}else{if(balance.pickedQty<line.quantity)throw Object.assign(new Error(`Picked stock is insufficient for ${line.sku}`),{status:409});balance.pickedQty-=line.quantity;balance.packedQty+=line.quantity;await InventoryMovement.create([{warehouseId:order.warehouseId,productId:line.productId,movementType:"pack",quantityDelta:line.quantity,bucket:"packed",referenceType:"sales_order",referenceId:order.salesOrderId,reason:"Order packed",actorEmployeeId:actor}],{session});}balance.updatedBy=actor;await balance.save({session});}}order.status=target;order.updatedBy=actor;await order.save({session});return order.toObject();});}finally{await session.endSession();}}
-module.exports={list,get,create,approve,confirm,allocate,advanceFulfilment};
+module.exports={list,get,create,approve,confirm,allocate,recheckStock,cancel,advanceFulfilment};
