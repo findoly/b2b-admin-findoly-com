@@ -1,18 +1,40 @@
-<aside class="sidebar"><div class="brand">Findoly B2B Admin</div><nav class="py-2">
-<% if (can('dashboard.view')) { %><a class="<%= currentPath==='/dashboard'?'active':'' %>" href="/dashboard">Dashboard</a><% } %>
-<% if (can('customers.view')) { %><a class="<%= currentPath.startsWith('/customers')?'active':'' %>" href="/customers">Customers</a><% } %>
-<% if (can('products.view')) { %><a class="<%= currentPath.startsWith('/products')?'active':'' %>" href="/products">Products</a><% } %>
-<% if (can('suppliers.view')) { %><a class="<%= currentPath.startsWith('/suppliers')?'active':'' %>" href="/suppliers">Suppliers</a><% } %>
-<% if (can('pricing.view')) { %><a class="<%= currentPath.startsWith('/pricing')?'active':'' %>" href="/pricing">Customer Pricing</a><% } %>
-<% if (can('procurement.view')) { %><a class="<%= currentPath.startsWith('/procurement')?'active':'' %>" href="/procurement">Procurement</a><% } %>
-<% if (can('inventory.view')) { %><a class="<%= currentPath.startsWith('/inventory')?'active':'' %>" href="/inventory">Inventory</a><a class="<%= currentPath.startsWith('/warehouses')?'active':'' %>" href="/warehouses">Warehouses</a><% } %>
-<% if (can('orders.view')) { %><a class="<%= currentPath.startsWith('/orders')?'active':'' %>" href="/orders">Sales Orders</a><% } %>
-<% if (can('delivery.view')) { %><a class="<%= currentPath.startsWith('/delivery')?'active':'' %>" href="/delivery">Delivery</a><% } %>
-<% if (can('finance.view')) { %><a class="<%= currentPath.startsWith('/finance')||currentPath.startsWith('/invoices')?'active':'' %>" href="/finance">Finance</a><% } %>
-<% if (can('returns.view')) { %><a class="<%= currentPath.startsWith('/returns')?'active':'' %>" href="/returns">Returns</a><% } %>
-<% if (can('reports.view')) { %><a class="<%= currentPath.startsWith('/reports')?'active':'' %>" href="/reports">Reports</a><% } %>
-<% if (can('storage.view')) { %><a class="<%= currentPath.startsWith('/storage')?'active':'' %>" href="/storage">File Manager</a><% } %>
-<% if (can('employees.view')) { %><a class="<%= currentPath.startsWith('/employees')?'active':'' %>" href="/employees">Employees</a><% } %>
-<% if (can('roles.view')) { %><a class="<%= currentPath.startsWith('/roles')?'active':'' %>" href="/roles">Roles & Permissions</a><% } %>
-<% if (can('audit.view')) { %><a class="<%= currentPath.startsWith('/audit')?'active':'' %>" href="/audit">Audit Trail</a><% } %>
-</nav></aside>
+<%
+  const canAccess = typeof can === 'function' ? can : () => true;
+  const showWorkspace = canAccess('dashboard.view') || canAccess('customers.view') || canAccess('products.view') || canAccess('suppliers.view') || canAccess('pricing.view');
+  const showOperations = canAccess('procurement.view') || canAccess('inventory.view') || canAccess('orders.view') || canAccess('delivery.view') || canAccess('returns.view');
+  const showFinance = canAccess('finance.view') || canAccess('reports.view');
+  const showAdministration = canAccess('storage.view') || canAccess('employees.view') || canAccess('roles.view') || canAccess('audit.view');
+%>
+<div id="crmPrimaryNavigation" class="sidebar sidebar-main sidebar-expand-lg crm-sidebar" :class="{'crm-sidebar-open': sidebarOpen, 'crm-sidebar-collapsed': sidebarCollapsed}" :aria-hidden="(!sidebarOpen && window.innerWidth < 992).toString()" x-effect="document.documentElement.classList.toggle('crm-mobile-drawer-open', sidebarOpen); document.body.classList.toggle('crm-mobile-drawer-open', sidebarOpen)" @keydown.escape.window="sidebarOpen=false">
+  <div class="sidebar-content">
+    <div class="crm-sidebar-mobile-head d-lg-none"><div class="d-flex align-items-center gap-2"><img src="/images/findoly-logo.png" alt="Findoly" class="crm-sidebar-brand-logo"><strong>B2B navigation</strong></div><button type="button" class="crm-sidebar-close" @click="sidebarOpen = false" aria-label="Close navigation">×</button></div>
+    <div class="crm-sidebar-desktop-actions d-none d-lg-flex"><button type="button" class="crm-sidebar-collapse" @click="toggleSidebar()" :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'" :aria-expanded="(!sidebarCollapsed).toString()" :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"><svg viewBox="0 0 24 24" aria-hidden="true" :class="{'is-collapsed': sidebarCollapsed}"><path d="m14 7-5 5 5 5"/></svg><span class="crm-sidebar-collapse-label" x-text="sidebarCollapsed ? 'Expand' : 'Collapse'">Collapse</span></button></div>
+    <div class="sidebar-section pt-2"><ul class="nav nav-sidebar" data-nav-type="accordion">
+      <% if (showWorkspace) { %><li class="nav-item-header"><span>Workspace</span></li><% } %>
+      <% if (canAccess('dashboard.view')) { %><li class="nav-item"><a href="/dashboard" title="Dashboard" class="nav-link" :class="{active:pathIs('/dashboard')}" @click="sidebarOpen=false"><svg viewBox="0 0 24 24"><path d="M3 10.7 12 3l9 7.7v9.8a.5.5 0 0 1-.5.5h-5.2v-6.2H8.7V21H3.5a.5.5 0 0 1-.5-.5Z"/><path d="M9.2 21v-6.2h5.6V21"/></svg><span>Dashboard</span></a></li><% } %>
+      <% if (canAccess('customers.view')) { %><li class="nav-item"><a href="/customers" title="Customers" class="nav-link" :class="{active:pathIs('/customers')}" @click="sidebarOpen=false"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0M13 20a4.5 4.5 0 0 1 8 0"/></svg><span>Customers</span></a></li><% } %>
+      <% if (canAccess('products.view')) { %><li class="nav-item"><a href="/products" title="Products" class="nav-link" :class="{active:pathIs('/products')}" @click="sidebarOpen=false"><svg viewBox="0 0 24 24"><path d="M4 7h16v13H4zM7 4h10v3H7z"/><path d="M9 11h6M9 15h4"/></svg><span>Products</span></a></li><% } %>
+      <% if (canAccess('suppliers.view')) { %><li class="nav-item"><a href="/suppliers" title="Suppliers" class="nav-link" :class="{active:pathIs('/suppliers')}" @click="sidebarOpen=false"><svg viewBox="0 0 24 24"><path d="M3 18h18M5 18V8l7-4 7 4v10"/><path d="M8 18v-5h8v5"/></svg><span>Suppliers</span></a></li><% } %>
+      <% if (canAccess('pricing.view')) { %><li class="nav-item"><a href="/pricing" title="Customer pricing" class="nav-link" :class="{active:pathIs('/pricing')}" @click="sidebarOpen=false"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5M16 16h.01"/></svg><span>Customer Pricing</span></a></li><% } %>
+
+      <% if (showOperations) { %><li class="nav-item-header"><span>Operations</span></li><% } %>
+      <% if (canAccess('procurement.view')) { %><li class="nav-item"><a href="/procurement" title="Procurement" class="nav-link" :class="{active:pathIs('/procurement')}" @click="sidebarOpen=false"><svg viewBox="0 0 24 24"><path d="M4 7h16l-2 12H6L4 7Z"/><path d="M8 7a4 4 0 0 1 8 0"/></svg><span>Procurement</span></a></li><% } %>
+      <% if (canAccess('inventory.view')) { %><li class="nav-item"><a href="/inventory" title="Inventory" class="nav-link" :class="{active:pathIs('/inventory')}" @click="sidebarOpen=false"><svg viewBox="0 0 24 24"><path d="M4 6h16v14H4z"/><path d="M4 10h16M9 14h6"/></svg><span>Inventory</span></a></li><li class="nav-item"><a href="/warehouses" title="Warehouses" class="nav-link" :class="{active:pathIs('/warehouses')}" @click="sidebarOpen=false"><svg viewBox="0 0 24 24"><path d="M3 10 12 4l9 6v10H3Z"/><path d="M7 14h10M7 18h10"/></svg><span>Warehouses</span></a></li><% } %>
+      <% if (canAccess('orders.view')) { %><li class="nav-item"><a href="/orders" title="Sales orders" class="nav-link" :class="{active:pathIs('/orders')}" @click="sidebarOpen=false"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>Sales Orders</span></a></li><% } %>
+      <% if (canAccess('delivery.view')) { %><li class="nav-item"><a href="/delivery" title="Delivery" class="nav-link" :class="{active:pathIs('/delivery')}" @click="sidebarOpen=false"><svg viewBox="0 0 24 24"><path d="M3 6h11v10H3zM14 9h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg><span>Delivery</span></a></li><% } %>
+      <% if (canAccess('returns.view')) { %><li class="nav-item"><a href="/returns" title="Returns" class="nav-link" :class="{active:pathIs('/returns')}" @click="sidebarOpen=false"><svg viewBox="0 0 24 24"><path d="M8 7H4v4M4 11c1.5-4 6-6 10-4 2 .8 3.5 2.4 4.2 4.3M16 17h4v-4M20 13c-1.5 4-6 6-10 4-2-.8-3.5-2.4-4.2-4.3"/></svg><span>Returns</span></a></li><% } %>
+
+      <% if (showFinance) { %><li class="nav-item-header"><span>Finance & Insights</span></li><% } %>
+      <% if (canAccess('finance.view')) { %><li class="nav-item"><a href="/finance" title="Finance" class="nav-link" :class="{active:pathIs('/finance') || pathIs('/invoices')}" @click="sidebarOpen=false"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 9h16M8 14h4"/></svg><span>Finance</span></a></li><% } %>
+      <% if (canAccess('reports.view')) { %><li class="nav-item"><a href="/reports" title="Reports" class="nav-link" :class="{active:pathIs('/reports')}" @click="sidebarOpen=false"><svg viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7M3 20h18"/></svg><span>Reports</span></a></li><% } %>
+
+      <% if (showAdministration) { %><li class="nav-item-header"><span>Administration</span></li><% } %>
+      <% if (canAccess('storage.view')) { %><li class="nav-item"><a href="/storage" title="File Manager" class="nav-link" :class="{active:pathIs('/storage')}" @click="sidebarOpen=false"><svg viewBox="0 0 24 24"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H12l2 2h3.5A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5Z"/></svg><span>File Manager</span></a></li><% } %>
+      <% if (canAccess('employees.view')) { %><li class="nav-item"><a href="/employees" title="Employees" class="nav-link" :class="{active:pathIs('/employees')}" @click="sidebarOpen=false"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0M14 20a4 4 0 0 1 7 0"/></svg><span>Employees</span></a></li><% } %>
+      <% if (canAccess('roles.view')) { %><li class="nav-item"><a href="/roles" title="Roles & permissions" class="nav-link" :class="{active:pathIs('/roles')}" @click="sidebarOpen=false"><svg viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.6 2.8 8 7 10 4.2-2 7-5.4 7-10V6Z"/><path d="m9 12 2 2 4-5"/></svg><span>Roles &amp; permissions</span></a></li><% } %>
+      <% if (canAccess('audit.view')) { %><li class="nav-item"><a href="/audit" title="Audit trail" class="nav-link" :class="{active:pathIs('/audit')}" @click="sidebarOpen=false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Audit Trail</span></a></li><% } %>
+    </ul></div>
+    <div class="crm-sidebar-foot"><a href="/dashboard" class="crm-sidebar-support text-decoration-none" @click="sidebarOpen=false"><span class="crm-sidebar-support-icon">B2B</span><div><strong>Findoly B2B</strong><small>Distribution operations</small></div></a></div>
+  </div>
+</div>
+<div class="crm-sidebar-overlay" x-show="sidebarOpen" x-cloak x-transition.opacity @click="sidebarOpen=false" aria-hidden="true"></div>
