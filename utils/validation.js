@@ -18,5 +18,6 @@ function mobileValue(value, label = "Mobile") { const text = String(value || "")
 function emailValue(value) { const text = String(value || "").trim().toLowerCase(); if (text && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) throw validationError("Email is invalid"); return text; }
 function positiveInteger(value, label = "Value") { const number = Number(value); if (!Number.isInteger(number) || number <= 0) throw validationError(`${label} must be a positive integer`); return number; }
 function nonNegativeInteger(value, label = "Value") { const number = Number(value); if (!Number.isInteger(number) || number < 0) throw validationError(`${label} must be a non-negative integer`); return number; }
+function basisPoints(value, label = "Tax rate") { const number = nonNegativeInteger(value, label); if (number > 10000) throw validationError(`${label} must be between 0 and 10000 basis points`); return number; }
 function booleanValue(value, fallback = false) { if (value === undefined || value === null || value === "") return fallback; return value === true || value === "true" || value === 1 || value === "1"; }
-module.exports = { validationError, textValue, optionalUuid, requiredUuid, mobileValue, emailValue, positiveInteger, nonNegativeInteger, booleanValue };
+module.exports = { validationError, textValue, optionalUuid, requiredUuid, mobileValue, emailValue, positiveInteger, nonNegativeInteger, basisPoints, booleanValue };
