@@ -1,0 +1,1 @@
+const r=require("express").Router();const c=require("../controllers/masterController");const {requirePermission}=require("../middleware/auth");r.get("/",requirePermission("pricing.view"),c.priceList);r.post("/",requirePermission("pricing.manage"),c.priceCreate);r.post("/:id/decision",requirePermission("pricing.approve"),c.priceApprove);module.exports=r;
