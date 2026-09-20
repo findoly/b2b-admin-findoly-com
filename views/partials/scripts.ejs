@@ -1,1 +1,32 @@
-<nav class="mobile-nav"><a href="/dashboard">Home</a><a href="/orders">Orders</a><a href="/inventory">Stock</a><a href="/finance">Finance</a></nav><script src="/assets/js/app.js"></script><script nonce="<%= cspNonce %>">async function logoutB2BAdmin(){try{await apiFetch('/api/auth/logout',{method:'POST',body:'{}'})}finally{location.href='/login'}}</script><script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script><script defer src="/vendor/alpinejs/cdn.min.js"></script>
+<script>
+  async function apiFetch(url, options = {}) {
+    const response = await fetch(url, { credentials: 'same-origin', ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}) } });
+    const body = await response.json().catch(() => ({ success: false, message: 'Invalid server response' }));
+    if (response.status === 401) {
+      window.location.href = '/login?returnTo=' + encodeURIComponent(location.pathname + location.search);
+      throw new Error('Authentication required');
+    }
+    if (!response.ok || body.success === false) throw new Error(body.message || 'Request failed');
+    return body;
+  }
+  function money(paise) { const amount=Number(paise); return new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2}).format(Number.isFinite(amount)?amount/100:0); }
+  function safeDate(value){if(!value)return null;const d=new Date(value);return Number.isFinite(d.getTime())?d:null;}
+  function formatDate(value){const d=safeDate(value);return d?new Intl.DateTimeFormat('en-IN',{dateStyle:'medium',timeStyle:'short'}).format(d):'—';}
+  function formatDateOnly(value){const d=safeDate(value);return d?new Intl.DateTimeFormat('en-IN',{dateStyle:'medium'}).format(d):'—';}
+  function shortDate(value){return formatDate(value);}
+  function humanize(value){return String(value||'—').replace(/[_-]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());}
+  function statusClass(value){return 'status-'+String(value||'unknown').toLowerCase().replace(/_/g,'-');}
+  function showCrmToast(message,type='success'){if(!message)return;let region=document.getElementById('crm-toast-region');if(!region){region=document.createElement('div');region.id='crm-toast-region';region.className='crm-toast-region';document.body.appendChild(region);}const toast=document.createElement('div');toast.className='crm-toast crm-toast-'+(type==='error'?'error':'success');toast.innerHTML='<span class="crm-toast-icon">'+(type==='error'?'!':'✓')+'</span><div class="crm-toast-content"><strong>'+(type==='error'?'Unable to complete action':'Success')+'</strong><span></span></div>';toast.querySelector('.crm-toast-content span').textContent=message;region.appendChild(toast);setTimeout(()=>toast.remove(),type==='error'?9000:5000);}
+  const CRM_SIDEBAR_COLLAPSED_KEY='leadops.crm.sidebar.collapsed.v1';
+  function readSidebarCollapsed(){try{return localStorage.getItem(CRM_SIDEBAR_COLLAPSED_KEY)==='1'}catch(_){return false}}
+  function syncSidebarDocumentState(collapsed){document.documentElement.classList.toggle('crm-sidebar-saved-collapsed',Boolean(collapsed));}
+  function crmShell(){return{
+    admin:{},shellError:'',sidebarOpen:false,sidebarCollapsed:readSidebarCollapsed(),
+    async initShell(){syncSidebarDocumentState(this.sidebarCollapsed);try{this.admin=(await apiFetch('/api/auth/me')).data||{};}catch(e){this.shellError=e.message;}},
+    toggleSidebar(){this.sidebarCollapsed=!this.sidebarCollapsed;syncSidebarDocumentState(this.sidebarCollapsed);try{localStorage.setItem(CRM_SIDEBAR_COLLAPSED_KEY,this.sidebarCollapsed?'1':'0')}catch(_){}},
+    can(permission){const p=Array.isArray(this.admin.permissions)?this.admin.permissions:[];return p.includes('*')||p.includes(permission);},
+    pathIs(path){return location.pathname===path||location.pathname.startsWith(path+'/');},
+    async logout(){try{await apiFetch('/api/auth/logout',{method:'POST',body:'{}'});location.href='/login';}catch(e){this.shellError=e.message;}}
+  }}
+</script>
+<script defer src="/vendor/alpinejs/cdn.min.js"></script>
