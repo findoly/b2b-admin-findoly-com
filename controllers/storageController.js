@@ -1,3 +1,9 @@
-const storage=require("../services/storage/s3-service"); async function config(req,res,next){try{return res.json({success:true,data:storage.publicConfig()});}catch(e){return next(e)}} async function upload(req,res,next){try{return res.status(201).json({success:true,data:await storage.createUploadUrl(req.body)});}catch(e){return next(e)}} async function download(req,res,next){try{return res.json({success:true,data:await storage.createDownloadUrl(req.body)});}catch(e){return next(e)}} function productPrefix(kind){const cfg=s3.publicConfig();return kind==="document"?cfg.privatePrefix+"products/":cfg.publicPrefix+"products/";}
-function assertProductKey(key){const cfg=s3.publicConfig(),value=String(key||"");if(!value.startsWith(cfg.publicPrefix+"products/")&&!value.startsWith(cfg.privatePrefix+"products/"))throw Object.assign(new Error("Product file key is invalid"),{status:400});return value;}
-module.exports={config,upload,download};
+const storage=require("../services/storage/s3-service");
+async function config(req,res,next){try{return res.json({success:true,data:storage.publicConfig()});}catch(e){return next(e)}}
+async function upload(req,res,next){try{return res.status(201).json({success:true,data:await storage.createUploadUrl(req.body)});}catch(e){return next(e)}}
+async function download(req,res,next){try{return res.json({success:true,data:await storage.createDownloadUrl(req.body)});}catch(e){return next(e)}}
+function productPrefix(kind){const cfg=storage.publicConfig();return kind==="document"?cfg.privatePrefix+"products/":cfg.publicPrefix+"products/";}
+function assertProductKey(key){const cfg=storage.publicConfig(),value=String(key||"");if(!value.startsWith(cfg.publicPrefix+"products/")&&!value.startsWith(cfg.privatePrefix+"products/"))throw Object.assign(new Error("Product file key is invalid"),{status:400});return value;}
+async function productUpload(req,res,next){try{return res.status(201).json({success:true,data:await storage.createUploadUrl({...req.body,prefix:productPrefix(req.body?.kind)})});}catch(e){return next(e)}}
+async function productDownload(req,res,next){try{return res.json({success:true,data:await storage.createDownloadUrl({key:assertProductKey(req.body?.key)})});}catch(e){return next(e)}}
+module.exports={config,upload,download,productUpload,productDownload};
