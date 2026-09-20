@@ -1,0 +1,4 @@
+const AuditLog=require("../models/AuditLog");const {pageQuery}=require("../utils/pagination");
+async function record(req,{action,entityType,entityId,summary="",before=null,after=null}){try{return await AuditLog.create({actorEmployeeId:req.admin?.employeeId||"system",action,entityType,entityId,summary,before,after,requestId:req.requestId||""});}catch(error){console.error("Audit log write failed",error);return null;}}
+async function list(query={}){const{page,limit,skip}=pageQuery(query);const filter={};if(query.actorEmployeeId)filter.actorEmployeeId=query.actorEmployeeId;if(query.action)filter.action=query.action;if(query.entityType)filter.entityType=query.entityType;if(query.entityId)filter.entityId=query.entityId;const[items,total]=await Promise.all([AuditLog.find(filter).sort({createdAt:-1}).skip(skip).limit(limit).lean(),AuditLog.countDocuments(filter)]);return{items,page,limit,total,pages:Math.ceil(total/limit)||1};}
+module.exports={record,list};
