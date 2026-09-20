@@ -1,0 +1,38 @@
+{
+  "name": "b2b-admin-findoly-com",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "Findoly B2B distribution admin for products, suppliers, inventory, orders, delivery, finance and reporting.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node start.js",
+    "dev": "nodemon start.js",
+    "check": "node scripts/check.js",
+    "test": "node --test",
+    "qa:static": "node scripts/qa-static.js",
+    "qa:critical": "node --test test/architecture.test.js test/business-rules.test.js test/http-contract.test.js",
+    "qa:production": "npm run qa:static && npm run qa:critical && npm test",
+    "ensure:indexes": "node scripts/run-with-runtime.js scripts/ensure-indexes.js",
+    "qa:preinstall": "node scripts/preinstall-qa.js"
+  },
+  "dependencies": {
+    "alpinejs": "^3.15.12",
+    "bootstrap": "5.3.8",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "helmet": "^8.1.0",
+    "mongoose": "^8.24.1",
+    "morgan": "^1.10.0",
+    "express-rate-limit": "^8.5.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10",
+    "supertest": "^7.2.2"
+  }
+}
