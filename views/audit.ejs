@@ -9,16 +9,16 @@
 <div class="col-md-3"><label class="form-label">Action</label><input class="form-control" placeholder="e.g. sales_order.cancel" x-model="filters.action"></div>
 <div class="col-md-3"><label class="form-label">Entity type</label><input class="form-control" placeholder="e.g. sales_order" x-model="filters.entityType"></div>
 <div class="col-md-4"><label class="form-label">Entity ID</label><input class="form-control" placeholder="Optional exact application ID" x-model="filters.entityId"></div>
-<div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" @click="load()">Apply filters</button></div>
+<div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" @click="applyFilters()">Apply filters</button></div>
 </div></div></div>
 <div class="card crm-data-card"><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Recorded activity</h2><p class="text-muted mb-0">Employee names are primary; immutable application IDs remain available for traceability.</p></div><button class="btn btn-light btn-sm" @click="load()">Refresh</button></div><div class="table-responsive"><table class="table crm-table align-middle mb-0"><thead><tr><th>Time</th><th>Employee</th><th>Action</th><th>Entity</th><th>Summary</th><th>Request</th></tr></thead><tbody>
 <template x-for="x in items" :key="x.auditLogId"><tr><td class="crm-nowrap" x-text="formatDate(x.createdAt)"></td><td><strong x-text="x.actorName||'Unknown employee'"></strong><div class="crm-record-id" x-text="x.actorEmployeeId"></div></td><td><span class="crm-status status-pending" x-text="humanize(x.action)"></span></td><td><strong x-text="humanize(x.entityType)"></strong><div class="crm-record-id" x-text="x.entityId"></div></td><td x-text="x.summary||auditSummary(x)"></td><td class="crm-record-id" x-text="x.requestId||'—'"></td></tr></template>
 <tr x-show="!loading && !items.length"><td colspan="6"><div class="crm-empty-state"><strong>No audit records found</strong></div></td></tr>
-</tbody></table></div></div>
+</tbody></table></div><%- include('partials/pager') %></div>
 </div><%- include('partials/footer') %></div></div></div>
 <script nonce="<%= cspNonce %>">function auditPage(){return{
-items:[],loading:true,error:'',filters:{action:'',entityType:'',entityId:''},
-async load(){this.loading=true;try{const q=new URLSearchParams({limit:'100'});for(const[k,v]of Object.entries(this.filters))if(v)q.set(k,v);this.items=(await apiFetch('/api/audit?'+q)).data.items||[]}catch(e){this.error=e.message}finally{this.loading=false}},
+...crmPager('load'),items:[],loading:true,error:'',filters:{action:'',entityType:'',entityId:''},
+async load(){this.loading=true;try{const q=new URLSearchParams({limit:String(this.pageSize),page:String(this.page)});for(const[k,v]of Object.entries(this.filters))if(v)q.set(k,v);const data=(await apiFetch('/api/audit?'+q)).data;this.items=data.items||[];this.setPageMeta(data)}catch(e){this.error=e.message}finally{this.loading=false}},applyFilters(){this.resetPage();return this.load()},
 auditSummary(x){if(x.after?.status)return 'Status: '+humanize(x.after.status);if(x.after?.approvalStatus)return 'Approval: '+humanize(x.after.approvalStatus);if(x.after?.amountPaise)return 'Amount: '+money(x.after.amountPaise);return 'Recorded change'}
 }}</script><%- include('partials/scripts') %>
 </body></html>
