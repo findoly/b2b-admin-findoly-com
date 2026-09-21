@@ -32,6 +32,21 @@ async function recheckStock(id,actor){
       if(reserve>0){
         balance.availableQty-=reserve;balance.reservedQty+=reserve;balance.updatedBy=actor;await balance.save({session});
         await InventoryMovement.create([{warehouseId:order.warehouseId,productId,movementType:"reserve",quantityDelta:reserve,bucket:"reserved",referenceType:"sales_order",referenceId:order.salesOrderId,reason:"Stock rechecked after procurement",actorEmployeeId:actor}],{session});
+        const line=order.lines.find(x=>x.productId===productId);
+        if(line){
+          const allocationRows=await ProcurementAllocation.aggregate([{$match:{salesOrderId:id,salesOrderLineId:line.salesOrderLineId,status:{$ne:"cancelled"}}},{$group:{_id:null,total:{$sum:"$quantity"}}}]).session(session);
+          const initialStockQty=Math.max(0,Number(line.quantity||0)-Number(line.procurementRequiredQty||0));
+          const allocationQty=Math.min(Number(line.procurementRequiredQty||0),Number(allocationRows[0]?.total||0));
+          const totalReservedAfter=alreadyReserved+reserve;
+          const desiredStockCostQty=Math.min(Number(line.quantity||0),initialStockQty+Math.max(0,totalReservedAfter-initialStockQty-allocationQty));
+          const currentStockCostQty=Number(line.stockReservedQty||0);
+          const extraStockCostQty=Math.max(0,desiredStockCostQty-currentStockCostQty);
+          if(extraStockCostQty>0){
+            const oldCost=currentStockCostQty*Number(line.stockUnitCostPaise||0),newCost=extraStockCostQty*Number(balance.averageCostPaise||0);
+            line.stockReservedQty=currentStockCostQty+extraStockCostQty;
+            line.stockUnitCostPaise=Math.round((oldCost+newCost)/line.stockReservedQty);
+          }
+        }
       }
       if(alreadyReserved+reserve<requiredQty)allReserved=false;
     }
