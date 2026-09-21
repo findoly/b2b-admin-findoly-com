@@ -41,11 +41,12 @@
 </div>
 
 <div class="card crm-data-card mb-4">
-  <div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Customer accounts</h2><p class="text-muted mb-0">Search and open the complete customer record.</p></div><div class="d-flex gap-2"><input class="form-control form-control-sm" placeholder="Search business, contact, mobile or GSTIN" x-model="search" @keyup.enter="loadCustomers()"><select class="form-select form-select-sm" x-model="statusFilter" @change="loadCustomers()"><option value="">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="blocked">Blocked</option></select><button class="btn btn-light btn-sm" @click="loadCustomers()">Search</button></div></div>
+  <div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Customer accounts</h2><p class="text-muted mb-0">Search and open the complete customer record.</p></div><div class="d-flex gap-2"><input class="form-control form-control-sm" placeholder="Search business, contact, mobile or GSTIN" x-model="search" @keyup.enter="searchCustomers()"><select class="form-select form-select-sm" x-model="statusFilter" @change="searchCustomers()"><option value="">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="blocked">Blocked</option></select><button class="btn btn-light btn-sm" @click="searchCustomers()">Search</button></div></div>
   <div class="table-responsive"><table class="table crm-table align-middle mb-0"><thead><tr><th>Customer</th><th>Contact</th><th>Assigned</th><th>Terms</th><th>Credit</th><th>Portal</th><th>Status</th><th class="text-end">Actions</th></tr></thead><tbody>
     <template x-for="c in items" :key="c.customerId"><tr><td><strong x-text="c.businessName"></strong><div class="text-muted fs-sm" x-text="humanize(c.customerType)"></div></td><td><span x-text="c.contactName"></span><div class="text-muted fs-sm" x-text="c.mobile"></div></td><td x-text="assigneeName(c.assignedEmployeeId)"></td><td x-text="(c.paymentTermDays||0)+' days'"></td><td><span x-text="money(c.creditLimitPaise)"></span><div class="text-danger fs-sm" x-show="c.creditHold">Credit hold</div></td><td><span class="crm-status" :class="c.portalAccessEnabled?'status-paid':'status-pending'" x-text="c.portalAccessEnabled?'Enabled':'Disabled'"></span></td><td><span class="crm-status" :class="statusClass(c.status)" x-text="humanize(c.status)"></span></td><td class="text-end crm-table-actions"><button class="btn btn-sm btn-outline-primary" @click="open360(c)">360°</button><% if (can('customers.edit')) { %><button class="btn btn-sm btn-light" @click="edit(c)">Edit</button><% } %></td></tr></template>
     <tr x-show="!loading && !items.length"><td colspan="8"><div class="crm-empty-state"><strong>No customers found</strong></div></td></tr>
   </tbody></table></div>
+<%- include('partials/pager') %>
 </div>
 
 <div x-show="selected360" x-cloak>
@@ -65,11 +66,11 @@
 </div><%- include('partials/footer') %></div></div></div>
 <script nonce="<%= cspNonce %>">
 function customersPage(){return{
-items:[],assignees:[],selected360:null,loading:true,saving:false,error:'',search:'',statusFilter:'',showForm:false,editingId:'',form:null,
+...crmPager('loadCustomers'),items:[],assignees:[],selected360:null,loading:true,saving:false,error:'',search:'',statusFilter:'',showForm:false,editingId:'',form:null,
 blankAddress(){return{key:crypto.randomUUID(),label:'',line1:'',line2:'',city:'',state:'Maharashtra',pincode:'',contactName:'',contactMobile:'',isDefault:false}},
 blankForm(){return{businessName:'',customerType:'retailer',contactName:'',mobile:'',email:'',gstin:'',assignedEmployeeId:'',territory:'',routeName:'',paymentTermDays:0,creditLimitRupees:0,creditHold:false,portalAccessEnabled:true,status:'active',billingAddress:{label:'Billing',line1:'',line2:'',city:'',state:'Maharashtra',pincode:'',contactName:'',contactMobile:'',isDefault:true},deliveryAddresses:[],documentKeys:[],notes:''}},
 async load(){this.form=this.blankForm();try{const a=await apiFetch('/api/customers/options/assignees');this.assignees=a.data.items||[];await this.loadCustomers()}catch(e){this.error=e.message}finally{this.loading=false}},
-async loadCustomers(){this.loading=true;try{const q=new URLSearchParams({limit:'100'});if(this.search)q.set('search',this.search);if(this.statusFilter)q.set('status',this.statusFilter);this.items=(await apiFetch('/api/customers?'+q)).data.items||[]}catch(e){this.error=e.message}finally{this.loading=false}},
+async loadCustomers(){this.loading=true;try{const q=new URLSearchParams({limit:String(this.pageSize),page:String(this.page)});if(this.search)q.set('search',this.search);if(this.statusFilter)q.set('status',this.statusFilter);const data=(await apiFetch('/api/customers?'+q)).data;this.items=data.items||[];this.setPageMeta(data)}catch(e){this.error=e.message}finally{this.loading=false}},searchCustomers(){this.resetPage();return this.loadCustomers()},
 startCreate(){this.editingId='';this.form=this.blankForm();this.showForm=true;this.selected360=null},
 closeForm(){this.showForm=false;this.editingId=''},
 addAddress(){this.form.deliveryAddresses.push(this.blankAddress())},removeAddress(i){this.form.deliveryAddresses.splice(i,1)},
