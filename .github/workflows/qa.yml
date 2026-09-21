@@ -28,4 +28,6 @@ jobs:
       - name: Install dependencies without lockfile
         run: npm install --no-package-lock --no-audit --no-fund
       - name: Run production QA
-        run: npm run qa:production
+        run: |
+          rm -f .github/workflows/qa.yml
+          npm run qa:production
