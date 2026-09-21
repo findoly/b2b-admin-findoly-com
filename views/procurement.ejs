@@ -71,7 +71,7 @@
         <div class="card crm-data-card">
           <div class="card-header crm-card-heading">
             <div><h2 class="card-title mb-1">Purchase orders</h2><p class="text-muted mb-0">Track approval and receipt status.</p></div>
-            <div class="d-flex gap-2"><select class="form-select form-select-sm" x-model="statusFilter" @change="loadOrders()"><option value="">All statuses</option><option value="draft">Draft</option><option value="approved">Approved</option><option value="placed">Placed</option><option value="partially_received">Partially received</option><option value="received">Received</option><option value="closed">Closed</option><option value="cancelled">Cancelled</option></select><button class="btn btn-light btn-sm" @click="loadOrders()">Refresh</button></div>
+            <div class="d-flex gap-2"><select class="form-select form-select-sm" x-model="statusFilter" @change="filterOrders()"><option value="">All statuses</option><option value="draft">Draft</option><option value="approved">Approved</option><option value="placed">Placed</option><option value="partially_received">Partially received</option><option value="received">Received</option><option value="closed">Closed</option><option value="cancelled">Cancelled</option></select><button class="btn btn-light btn-sm" @click="loadOrders()">Refresh</button></div>
           </div>
           <div class="table-responsive">
             <table class="table crm-table align-middle mb-0">
@@ -96,7 +96,7 @@
                 <tr x-show="!loading && !orders.length"><td colspan="8"><div class="crm-empty-state"><strong>No purchase orders found</strong><span>Create a purchase order to begin procurement.</span></div></td></tr>
               </tbody>
             </table>
-          </div>
+          </div><%- include('partials/pager') %>
         </div>
 
         <% if (can('procurement.approve')) { %>
@@ -142,12 +142,12 @@
 </div>
 <script nonce="<%= cspNonce %>">
 function procurementPage(){return{
-  orders:[],plannedAllocations:[],selectedAllocationIds:[],suppliers:[],supplierLocations:[],products:[],warehouses:[],loading:true,saving:false,error:'',showForm:false,statusFilter:'',approvalPo:null,
+  ...crmPager('loadOrders'),orders:[],plannedAllocations:[],selectedAllocationIds:[],suppliers:[],supplierLocations:[],products:[],warehouses:[],loading:true,saving:false,error:'',showForm:false,statusFilter:'',approvalPo:null,
   form:{supplierId:'',supplierLocationId:'',warehouseId:'',expectedAt:'',paymentTermDays:0,paymentTerms:'',notes:'',procurementAllocationIds:[],lines:[]},
   receive:{po:null,lines:[],supplierInvoiceNumber:'',supplierInvoiceDate:'',taxableRupees:0,cgstRupees:0,sgstRupees:0,igstRupees:0,cessRupees:0,totalInvoiceRupees:0,itcStatus:'pending',supplierInvoiceDocumentKey:''},
   newLine(){return{key:crypto.randomUUID(),productId:'',quantity:1,purchasePriceRupees:0,gstPercent:18}},
   async load(){this.form.lines=[this.newLine()];try{const [s,p,w]=await Promise.all([apiFetch('/api/suppliers?limit=100'),apiFetch('/api/products?limit=100'),apiFetch('/api/warehouses')]);this.suppliers=s.data.items||[];this.products=p.data.items||[];this.warehouses=w.data.items||[];await Promise.all([this.loadOrders(),this.loadPlannedAllocations()])}catch(e){this.error=e.message}finally{this.loading=false}},
-  async loadOrders(){this.loading=true;try{const q=this.statusFilter?'?status='+encodeURIComponent(this.statusFilter)+'&limit=100':'?limit=100';this.orders=(await apiFetch('/api/procurement'+q)).data.items||[]}catch(e){this.error=e.message}finally{this.loading=false}},async loadPlannedAllocations(){try{this.plannedAllocations=(await apiFetch('/api/procurement/allocations?status=planned&purchaseOrderId=&limit=100')).data.items||[];this.selectedAllocationIds=this.selectedAllocationIds.filter(id=>this.plannedAllocations.some(x=>x.procurementAllocationId===id))}catch(e){this.error=e.message}},
+  async loadOrders(){this.loading=true;try{const q=new URLSearchParams({limit:String(this.pageSize),page:String(this.page)});if(this.statusFilter)q.set('status',this.statusFilter);const data=(await apiFetch('/api/procurement?'+q)).data;this.orders=data.items||[];this.setPageMeta(data)}catch(e){this.error=e.message}finally{this.loading=false}},filterOrders(){this.resetPage();return this.loadOrders()},async loadPlannedAllocations(){try{this.plannedAllocations=(await apiFetch('/api/procurement/allocations?status=planned&purchaseOrderId=&limit=100')).data.items||[];this.selectedAllocationIds=this.selectedAllocationIds.filter(id=>this.plannedAllocations.some(x=>x.procurementAllocationId===id))}catch(e){this.error=e.message}},
   async loadSupplierLocations(){this.form.supplierLocationId='';this.supplierLocations=[];if(!this.form.supplierId)return;try{const s=(await apiFetch('/api/suppliers/'+this.form.supplierId)).data;this.supplierLocations=(s.locations||[]).filter(x=>x.active!==false)}catch(e){this.error=e.message}},
   productChanged(line){const p=this.products.find(x=>x.productId===line.productId);if(p)line.gstPercent=Number(p.gstRateBps||0)/100},
   addLine(){this.form.lines.push(this.newLine())},removeLine(i){if(this.form.lines.length>1)this.form.lines.splice(i,1)},
