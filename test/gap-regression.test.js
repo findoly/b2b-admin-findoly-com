@@ -34,10 +34,13 @@ test("finance supports immutable allocation reversal and later advance allocatio
   assert.match(source,/payment\.unallocatedPaise\+=Number\(allocation\.amountPaise\|\|0\)/);
 });
 
-test("supplier invoice uniqueness is enforced per supplier",()=>{
+test("supplier invoice uniqueness is enforced per supplier without breaking legacy rows",()=>{
   const SupplierBill=require("../models/SupplierBill");
-  const compound=SupplierBill.schema.indexes().find(([fields,options])=>fields.supplierId===1&&fields.supplierInvoiceNumber===1&&options.unique===true);
-  assert.ok(compound);
+  const normalized=SupplierBill.schema.indexes().find(([fields,options])=>fields.supplierInvoiceKey===1&&options.unique===true&&options.sparse===true);
+  assert.ok(normalized);
+  const source=read("services/procurement-service.js");
+  assert.match(source,/supplierInvoiceKey\(po\.supplierId,invoiceNumber\)/);
+  assert.match(source,/supplierInvoiceNumber:new RegExp/);
 });
 
 test("procurement demand is linked through ordered and received states",()=>{
@@ -75,6 +78,10 @@ test("return processing creates auditable finance settlements and replacement or
   assert.match(source,/createCustomerSettlement/);
   assert.match(source,/createSupplierSettlement/);
   assert.match(source,/createReplacementOrder/);
+  assert.ok(Settlement.schema.path("applications"));
+  const finance=read("services/finance-service.js");
+  assert.match(finance,/async function applyReturnSettlement/);
+  assert.match(finance,/settlement\.applications\.push/);
 });
 
 test("reorder dashboard uses configured product reorder levels",()=>{
@@ -91,13 +98,36 @@ test("business attachments use scoped private prefixes and collision-resistant k
   for(const area of["customers","suppliers","invoices","returns"])assert.match(routes,new RegExp("\\/"+area+"\\/upload-url"));
 });
 
+test("customer 360 credit exposure includes confirmed uninvoiced orders",()=>{
+  const source=read("services/customer-360-service.js");
+  assert.match(source,/openOrderExposurePaise/);
+  assert.match(source,/creditExposurePaise=outstandingPaise\+openOrderExposurePaise/);
+  assert.match(read("views/customers.ejs"),/selected360\?\.creditExposurePaise/);
+});
+
+test("mutations require an audit intent before business routes execute",()=>{
+  const middleware=read("middleware/mutation-audit.js");
+  const routes=read("routes/main.js");
+  assert.match(middleware,/action:"mutation\.intent"/);
+  assert.match(middleware,/AUDIT_UNAVAILABLE/);
+  assert.match(routes,/r\.use\(apiAuth\);r\.use\(requireMutationAudit\)/);
+});
+
+test("GitHub Actions workflow is intentionally absent while QA scripts remain",()=>{
+  assert.equal(fs.existsSync(path.join(root,".github/workflows/qa.yml")),false);
+  const pkg=JSON.parse(read("package.json"));
+  assert.ok(pkg.scripts["qa:production"]);
+  assert.ok(pkg.scripts["qa:critical"]);
+});
+
 test("large operational screens expose bounded pagination/search controls",()=>{
   for(const file of["customers.ejs","products.ejs","suppliers.ejs","pricing.ejs","procurement.ejs","orders.ejs","delivery.ejs","returns.ejs","employees.ejs","audit.ejs","inventory.ejs"]){
     const source=read("views/"+file);
     assert.match(source,/crmPager\(/,file);
   }
   const finance=read("views/finance.ejs");
-  for(const meta of["invoiceMeta","billMeta","paymentMeta"])assert.match(finance,new RegExp(meta));
+  for(const meta of["invoiceMeta","billMeta","paymentMeta","settlementMeta"])assert.match(finance,new RegExp(meta));
+  assert.match(finance,/openSettlementAllocation/);
   assert.doesNotMatch(read("views/procurement.ejs"),/\b(?:prompt|confirm)\s*\(/);
   assert.doesNotMatch(finance,/\b(?:prompt|confirm)\s*\(/);
 });
