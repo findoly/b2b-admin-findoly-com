@@ -39,7 +39,7 @@ test("supplier invoice uniqueness is enforced per supplier without breaking lega
   const normalized=SupplierBill.schema.indexes().find(([fields,options])=>fields.supplierInvoiceKey===1&&options.unique===true&&options.sparse===true);
   assert.ok(normalized);
   const source=read("services/procurement-service.js");
-  assert.match(source,/supplierInvoiceKey(po.supplierId,invoiceNumber)/);
+  assert.match(source,/supplierInvoiceKey\(po\.supplierId,invoiceNumber\)/);
   assert.match(source,/supplierInvoiceNumber:new RegExp/);
 });
 
