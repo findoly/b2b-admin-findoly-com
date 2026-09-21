@@ -34,10 +34,13 @@ test("finance supports immutable allocation reversal and later advance allocatio
   assert.match(source,/payment\.unallocatedPaise\+=Number\(allocation\.amountPaise\|\|0\)/);
 });
 
-test("supplier invoice uniqueness is enforced per supplier",()=>{
+test("supplier invoice uniqueness is enforced per supplier without breaking legacy rows",()=>{
   const SupplierBill=require("../models/SupplierBill");
-  const compound=SupplierBill.schema.indexes().find(([fields,options])=>fields.supplierId===1&&fields.supplierInvoiceNumber===1&&options.unique===true);
-  assert.ok(compound);
+  const normalized=SupplierBill.schema.indexes().find(([fields,options])=>fields.supplierInvoiceKey===1&&options.unique===true&&options.sparse===true);
+  assert.ok(normalized);
+  const source=read("services/procurement-service.js");
+  assert.match(source,/supplierInvoiceKey(po.supplierId,invoiceNumber)/);
+  assert.match(source,/supplierInvoiceNumber:new RegExp/);
 });
 
 test("procurement demand is linked through ordered and received states",()=>{
