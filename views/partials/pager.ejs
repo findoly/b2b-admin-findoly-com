@@ -1,0 +1,7 @@
+<div class="card-footer d-flex flex-wrap justify-content-between align-items-center gap-2" x-show="total>0">
+  <div class="text-muted fs-sm"><span x-text="Number(total||0).toLocaleString()"></span> records · page <span x-text="page"></span> of <span x-text="pages"></span></div>
+  <div class="btn-group btn-group-sm" role="group" aria-label="Pagination">
+    <button type="button" class="btn btn-light" @click="goPage(page-1)" :disabled="page<=1">Previous</button>
+    <button type="button" class="btn btn-light" @click="goPage(page+1)" :disabled="page>=pages">Next</button>
+  </div>
+</div>
