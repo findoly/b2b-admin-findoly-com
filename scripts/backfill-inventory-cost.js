@@ -10,7 +10,7 @@ function physicalQty(balance){
 
 (async()=>{
   let scanned=0,updated=0,unresolved=0;
-  const cursor=InventoryBalance.find({averageCostPaise:{$lte:0}}).select({warehouseId:1,productId:1,availableQty:1,reservedQty:1,pickedQty:1,packedQty:1,damagedQty:1,returnedQty:1,averageCostPaise:1}).lean().cursor();
+  const cursor=InventoryBalance.find({averageCostPaise:{$lte:0}}).select({inventoryBalanceId:1,warehouseId:1,productId:1,availableQty:1,reservedQty:1,pickedQty:1,packedQty:1,damagedQty:1,returnedQty:1,averageCostPaise:1}).lean().cursor();
   for await(const balance of cursor){
     scanned+=1;
     if(physicalQty(balance)<=0)continue;
