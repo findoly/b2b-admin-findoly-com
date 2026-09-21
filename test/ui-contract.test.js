@@ -46,3 +46,18 @@ test("legacy simplified mobile bottom navigation is not present",()=>{
   const source=walk(path.join(root,"views")).filter(x=>x.endsWith(".ejs")).map(x=>fs.readFileSync(x,"utf8")).join("\n");
   assert.doesNotMatch(source,/class=["'][^"']*mobile-nav/);
 });
+
+
+test("CRM runtime loads local Alpine first and only reports a real runtime failure",()=>{
+  const head=fs.readFileSync(path.join(root,"views/partials/head.ejs"),"utf8");
+  const scripts=fs.readFileSync(path.join(root,"views/partials/scripts.ejs"),"utf8");
+  const runtime=fs.readFileSync(path.join(root,"public/js/crm-ui-runtime.js"),"utf8");
+  const alpineIndex=head.indexOf('/vendor/alpinejs/cdn.min.js');
+  const runtimeIndex=head.indexOf('/js/crm-ui-runtime.js');
+  assert.ok(alpineIndex>=0,"local Alpine script must be present in the document head");
+  assert.ok(runtimeIndex>alpineIndex,"CRM runtime must execute after local Alpine");
+  assert.doesNotMatch(scripts,/\/vendor\/alpinejs\/cdn\.min\.js/,"Alpine must not be loaded a second time at the bottom of the page");
+  assert.doesNotMatch(runtime,/cdn\.jsdelivr\.net|unpkg\.com/,"runtime fallback must not depend on CSP-blocked external CDNs");
+  assert.match(runtime,/window\.addEventListener\('load', showRuntimeError/);
+  assert.match(runtime,/if \(window\.Alpine\)/);
+});

@@ -33,4 +33,3 @@
     async logout(){try{await apiFetch('/api/auth/logout',{method:'POST',body:'{}'});location.href='/login';}catch(e){this.shellError=e.message;}}
   }}
 </script>
-<script defer src="/vendor/alpinejs/cdn.min.js"></script>
