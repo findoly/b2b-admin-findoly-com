@@ -61,3 +61,30 @@ test("CRM runtime loads local Alpine first and only reports a real runtime failu
   assert.match(runtime,/window\.addEventListener\('load', showRuntimeError/);
   assert.match(runtime,/if \(window\.Alpine\)/);
 });
+
+test("delivery workflow uses dedicated connected pages",()=>{
+  const routes=fs.readFileSync(path.join(root,"routes/frontend.js"),"utf8");
+  const list=fs.readFileSync(path.join(root,"views/delivery.ejs"),"utf8");
+  const assign=fs.readFileSync(path.join(root,"views/delivery-assign.ejs"),"utf8");
+  const detail=fs.readFileSync(path.join(root,"views/delivery-detail.ejs"),"utf8");
+  const update=fs.readFileSync(path.join(root,"views/delivery-update.ejs"),"utf8");
+  assert.match(routes,/\/delivery\/assign/);
+  assert.match(routes,/\/delivery\/:deliveryAssignmentId\/update/);
+  assert.match(assign,/Warehouse & products/);
+  assert.match(assign,/assignedDriverId/);
+  assert.match(detail,/Products in this delivery/);
+  assert.match(update,/Review & confirm/);
+  assert.doesNotMatch(list,/Update delivery<\/h2>/);
+});
+
+test("product management uses dedicated HTML and gallery pages",()=>{
+  const routes=fs.readFileSync(path.join(root,"routes/frontend.js"),"utf8");
+  const form=fs.readFileSync(path.join(root,"views/product-form.ejs"),"utf8");
+  const detail=fs.readFileSync(path.join(root,"views/product-detail.ejs"),"utf8");
+  assert.match(routes,/\/products\/new/);
+  assert.match(routes,/\/products\/:productId\/edit/);
+  assert.match(form,/Import HTML/);
+  assert.match(form,/descriptionHtml/);
+  assert.match(detail,/Photo gallery/);
+  assert.match(detail,/x-html="product\?\.descriptionHtml"/);
+});
