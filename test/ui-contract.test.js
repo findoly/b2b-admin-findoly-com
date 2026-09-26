@@ -27,7 +27,7 @@ test("every inline production script has a CSP nonce",()=>{
 
 test("customer and product forms use business-facing units",()=>{
   const customers=fs.readFileSync(path.join(root,"views/customers.ejs"),"utf8");
-  const products=fs.readFileSync(path.join(root,"views/products.ejs"),"utf8");
+  const products=fs.readFileSync(path.join(root,"views/product-form.ejs"),"utf8");
   assert.match(customers,/Credit limit ₹/);
   assert.doesNotMatch(customers,/Credit limit paise/i);
   assert.match(products,/GST %/);
@@ -37,9 +37,9 @@ test("customer and product forms use business-facing units",()=>{
 
 test("customer 360 and supplier product comparison remain wired",()=>{
   const customers=fs.readFileSync(path.join(root,"views/customers.ejs"),"utf8");
-  const products=fs.readFileSync(path.join(root,"views/products.ejs"),"utf8");
+  const productDetail=fs.readFileSync(path.join(root,"views/product-detail.ejs"),"utf8");
   assert.match(customers,/\/360/);
-  assert.match(products,/supplier-offers/);
+  assert.match(productDetail,/supplier-offers/);
 });
 
 test("legacy simplified mobile bottom navigation is not present",()=>{
