@@ -70,3 +70,27 @@ test("general storage upload still requires storage.manage",async()=>{
   const r=await request(app).post("/api/storage/upload-url").set("Cookie",authCookie(["products.media"])).send({fileName:"test.jpg",contentType:"image/jpeg",sizeBytes:100});
   assert.equal(r.status,403);
 });
+
+
+test("delivery workflow endpoints remain permission protected",async()=>{
+  const id="d".repeat(32);
+  const [options,detail,update]=await Promise.all([
+    request(app).get("/api/delivery/options"),
+    request(app).get(`/api/delivery/${id}`),
+    request(app).post(`/api/delivery/${id}/status`).send({status:"picked_up"})
+  ]);
+  assert.equal(options.status,401);
+  assert.equal(detail.status,401);
+  assert.equal(update.status,401);
+});
+
+test("delivery assignment options do not require employee-management permission",async()=>{
+  const r=await request(app).get("/api/delivery/options").set("Cookie",authCookie(["delivery.assign"]));
+  assert.notEqual(r.status,403);
+});
+
+test("product gallery mutation requires products.media permission",async()=>{
+  const id="e".repeat(32),mediaId="f".repeat(32);
+  const r=await request(app).put(`/api/products/${id}/media/${mediaId}`).set("Cookie",authCookie(["products.view"])).send({isPrimary:true});
+  assert.equal(r.status,403);
+});
