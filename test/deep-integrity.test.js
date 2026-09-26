@@ -84,6 +84,7 @@ test("product media attachment and HTML descriptions stay scoped and sanitized",
   assert.doesNotMatch(html,/"script"/);
   assert.doesNotMatch(html,/"style"/);
   assert.match(html,/allowProtocolRelative:false/);
+  assert.doesNotMatch(html,/enforceHtmlBoundary:true/);
 });
 
 test("protected system roles and employee self-access cannot be disabled accidentally",()=>{
