@@ -62,7 +62,10 @@ test("dashboard overdue totals exclude records without due dates",()=>{
 
 test("delivery assignment is atomic and return stock is based on real received stock",()=>{
   const delivery=read("services/delivery-service.js");
-  assert.match(delivery,/findOneAndUpdate\(\{salesOrderId,status:\{\$in:\["packed","ready_for_dispatch"\]\}\}/);
+  assert.match(delivery,/findOne\(\{salesOrderId,status:\{\$in:\["packed","ready_for_dispatch"\]\}\}/);
+  assert.match(delivery,/Employee\.findOne\(\{employeeId:assignedDriverId,status:"active",deliveryEligible:\{\$ne:false\}\}\)/);
+  assert.match(delivery,/Packed stock is insufficient/);
+  assert.match(delivery,/findOneAndUpdate\(\{salesOrderId:order\.salesOrderId,status:order\.status\}/);
   assert.match(delivery,/withTransaction/);
   const returns=read("services/return-service.js");
   assert.match(returns,/GoodsReceipt\.find\(\{purchaseOrderId:po\.purchaseOrderId\}\)/);
@@ -71,10 +74,16 @@ test("delivery assignment is atomic and return stock is based on real received s
   assert.match(returns,/line\.outcome==="rejected"/);
 });
 
-test("product media attachment is restricted to product-scoped S3 prefixes",()=>{
+test("product media attachment and HTML descriptions stay scoped and sanitized",()=>{
   const source=read("services/product-service.js");
+  const html=read("utils/product-html.js");
   assert.match(source,/expectedPrefix=kind==="document"\?cfg\.privatePrefix\+"products\/"\:cfg\.publicPrefix\+"products\//);
   assert.match(source,/Product media key does not match its media type/);
+  assert.match(source,/sanitizeProductHtml/);
+  assert.match(html,/allowedTags:ALLOWED_TAGS/);
+  assert.doesNotMatch(html,/"script"/);
+  assert.doesNotMatch(html,/"style"/);
+  assert.match(html,/allowProtocolRelative:false/);
 });
 
 test("protected system roles and employee self-access cannot be disabled accidentally",()=>{
