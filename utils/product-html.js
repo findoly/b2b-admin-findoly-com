@@ -21,7 +21,6 @@ function sanitizeProductHtml(value){
     allowedSchemes:["http","https","mailto"],
     allowedSchemesByTag:{img:["https"]},
     allowProtocolRelative:false,
-    enforceHtmlBoundary:true,
     transformTags:{
       a(tagName,attribs){
         const next={...attribs};
