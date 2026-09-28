@@ -45,3 +45,22 @@ test("sales-order sourcing surfaces configured supplier offers and preserves one
   const allocation=read("models/ProcurementAllocation.js");
   for(const field of["salesOrderId","salesOrderLineId","productId","supplierId","supplierLocationId","supplierProductOfferId","quantity"])assert.ok(allocation.includes(field+":"),field);
 });
+
+test("connected record pages do not require unrelated inventory or product API permissions",()=>{
+  const orderRoutes=read("routes/orders.js");
+  assert.match(orderRoutes,/\/options\/warehouses/);
+  assert.match(orderRoutes,/requirePermission\("orders\.create"\),c\.orderWarehouseOptions/);
+  for(const file of["views/orders.ejs","views/order-detail.ejs","views/order-fulfilment.ejs"])assert.doesNotMatch(read(file),/api\/warehouses/,file);
+  assert.match(read("views/order-form.ejs"),/api\/orders\/options\/warehouses/);
+  const orderService=read("services/order-service.js");
+  assert.match(orderService,/async function warehouseOptions/);
+  assert.match(orderService,/warehouseSnapshot/);
+  for(const file of["views/procurement.ejs","views/procurement-demand.ejs","views/procurement-detail.ejs"]){
+    const source=read(file);
+    assert.doesNotMatch(source,/api\/warehouses/,file);
+    assert.doesNotMatch(source,/api\/products/,file);
+  }
+  const procurementService=read("services/procurement-service.js");
+  assert.match(procurementService,/warehouseSnapshot/);
+  assert.match(procurementService,/productSnapshot/);
+});
