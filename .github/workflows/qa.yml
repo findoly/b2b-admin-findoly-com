@@ -1,0 +1,31 @@
+name: B2B QA
+on:
+  push:
+    branches: [chatgpt-dev, prod]
+  pull_request:
+    branches: [prod]
+  workflow_dispatch:
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NODE_ENV: test
+      CI: "true"
+      SKIP_DB: "true"
+      B2B_SESSION_SECRET: ci-session-secret-long-enough-for-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+      - name: Production QA five times
+        run: |
+          set -euo pipefail
+          for pass in 1 2 3 4 5; do
+            echo "QA pass $pass/5"
+            npm run qa:production
+          done
