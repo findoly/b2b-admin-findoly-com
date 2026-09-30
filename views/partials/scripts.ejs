@@ -1,6 +1,9 @@
 <script nonce="<%= cspNonce %>">
+  const crmMutationKeys=new Map();
+  function crmIdempotencyKey(url,options={}){const method=String(options.method||'GET').toUpperCase();if(!['POST','PUT','PATCH','DELETE'].includes(method))return '';const fingerprint=method+'|'+url+'|'+String(options.body||'');const now=Date.now(),existing=crmMutationKeys.get(fingerprint);if(existing&&now-existing.at<10000)return existing.key;const key=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():(Date.now().toString(36)+Math.random().toString(36).slice(2));crmMutationKeys.set(fingerprint,{key,at:now});if(crmMutationKeys.size>100)for(const [k,v] of crmMutationKeys)if(now-v.at>30000)crmMutationKeys.delete(k);return key;}
   async function apiFetch(url, options = {}) {
-    const response = await fetch(url, { credentials: 'same-origin', ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}) } });
+    const key=crmIdempotencyKey(url,options);const headers={ 'Content-Type': 'application/json', ...(key?{'Idempotency-Key':key}:{}), ...(options.headers || {}) };
+    const response = await fetch(url, { credentials: 'same-origin', ...options, headers });
     const body = await response.json().catch(() => ({ success: false, message: 'Invalid server response' }));
     if (response.status === 401) {
       window.location.href = '/login?returnTo=' + encodeURIComponent(location.pathname + location.search);
