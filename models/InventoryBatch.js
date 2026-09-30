@@ -1,0 +1,4 @@
+const mongoose=require("mongoose");const uuid=require("../utils/uuid");
+const schema=new mongoose.Schema({inventoryBatchId:{type:String,default:uuid,unique:true,index:true,immutable:true,match:/^[a-f0-9]{32}$/},warehouseId:{type:String,required:true,index:true},productId:{type:String,required:true,index:true},batchKey:{type:String,required:true},batchNumber:{type:String,required:true,index:true},expiryDate:{type:Date,default:null,index:true},sellableQty:{type:Number,default:0,min:0},incomingQty:{type:Number,default:0,min:0},damagedQty:{type:Number,default:0,min:0},returnedQty:{type:Number,default:0,min:0},updatedBy:{type:String,default:"system"}},{collection:"b2binventorybatches",timestamps:true,strict:true});
+schema.index({warehouseId:1,productId:1,batchKey:1},{unique:true});schema.index({warehouseId:1,productId:1,expiryDate:1,sellableQty:1});
+module.exports=mongoose.model("B2BInventoryBatch",schema,"b2binventorybatches");
