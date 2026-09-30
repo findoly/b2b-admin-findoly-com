@@ -4,7 +4,7 @@ const Payment=require("../models/Payment");
 const Invoice=require("../models/Invoice");
 const SupplierBill=require("../models/SupplierBill");
 const Return=require("../models/Return");
-const Employee=require("../models/Employee");
+const Employee=require("../models/Employee");const {applyScope}=require("../utils/access-scope");
 function range(query={}){const from=query.from?new Date(String(query.from)+"T00:00:00.000Z"):new Date(Date.now()-30*86400000);const to=query.to?new Date(String(query.to)+"T23:59:59.999Z"):new Date();if(Number.isNaN(from.getTime())||Number.isNaN(to.getTime())||from>to)throw Object.assign(new Error("Report date range is invalid"),{status:400});if(to-from>366*86400000)throw Object.assign(new Error("Report date range cannot exceed 366 days"),{status:400});return{from,to};}
 function chunk(values,size=500){const out=[];for(let i=0;i<values.length;i+=size)out.push(values.slice(i,i+size));return out;}
 async function allocationRows(orderIds){const rows=[];for(const ids of chunk(orderIds)){const part=await ProcurementAllocation.aggregate([{$match:{salesOrderId:{$in:ids},status:{$ne:"cancelled"}}},{$group:{_id:{salesOrderId:"$salesOrderId",supplierId:"$supplierId"},quantity:{$sum:"$quantity"},procurementCostPaise:{$sum:{$multiply:["$purchasePricePaise","$quantity"]}},supplierName:{$first:"$supplierSnapshot.businessName"}}}]);rows.push(...part);}return rows;}
