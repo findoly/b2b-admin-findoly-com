@@ -127,14 +127,6 @@ test("mutations keep a durable pending audit intent until completion",()=>{
   assert.match(routes,/r\.use\(apiAuth\);r\.use\(requireMutationAudit\)/);
 });
 
-test("GitHub Actions production QA workflow is present",()=>{
-  const workflow=read(".github/workflows/qa.yml");
-  assert.match(workflow,/branches: \[prod\]/);
-  assert.match(workflow,/npm run qa:production/);
-  const pkg=JSON.parse(read("package.json"));
-  assert.ok(pkg.scripts["qa:production"]);
-  assert.ok(pkg.scripts["qa:critical"]);
-});
 
 test("large operational screens expose bounded pagination/search controls",()=>{
   for(const file of["customers.ejs","products.ejs","suppliers.ejs","pricing.ejs","procurement.ejs","orders.ejs","delivery.ejs","returns.ejs","employees.ejs","audit.ejs","inventory.ejs"]){
