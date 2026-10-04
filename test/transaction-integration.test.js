@@ -7,6 +7,7 @@ const Warehouse=require("../models/Warehouse");
 const SalesOrder=require("../models/SalesOrder");
 const InventoryBalance=require("../models/InventoryBalance");
 const InventoryMovement=require("../models/InventoryMovement");
+const Product=require("../models/Product");
 const orderService=require("../services/order-service");
 const uuid=require("../utils/uuid");
 
@@ -16,7 +17,7 @@ test("order confirmation reserves stock inside a real Mongo transaction",async(t
   await mongoose.connect(uri,{serverSelectionTimeoutMS:10000});
   t.after(async()=>{await mongoose.connection.dropDatabase();await mongoose.disconnect();});
 
-  const actor=uuid(),customerId=uuid(),warehouseId=uuid(),productId=uuid(),salesOrderId=uuid();
+  const actor=uuid(),customerId=uuid(),warehouseId=uuid(),secondaryWarehouseId=uuid(),productId=uuid(),salesOrderId=uuid();
   await Customer.create({
     customerId,
     businessName:"Transaction Test Customer",
@@ -28,8 +29,21 @@ test("order confirmation reserves stock inside a real Mongo transaction",async(t
     creditLimitPaise:500000,
     creditHold:false
   });
-  await Warehouse.create({warehouseId,name:"Transaction Test Warehouse",code:"TXN"});
-  await InventoryBalance.create({warehouseId,productId,availableQty:10,reservedQty:0,averageCostPaise:2500,updatedBy:actor});
+  await Product.create({productId,sku:"TXN-SKU",name:"Test Product",referenceSellingPricePaise:5000,minimumSellingPricePaise:0});
+  await Warehouse.insertMany([
+    {warehouseId,name:"Transaction Test Warehouse",code:"TXN"},
+    {warehouseId:secondaryWarehouseId,name:"Transaction Low Stock Warehouse",code:"TXL"}
+  ]);
+  await InventoryBalance.insertMany([
+    {warehouseId,productId,availableQty:10,reservedQty:0,averageCostPaise:2500,updatedBy:actor},
+    {warehouseId:secondaryWarehouseId,productId,availableQty:2,reservedQty:0,averageCostPaise:2600,updatedBy:actor}
+  ]);
+
+  const availability=await orderService.warehouseAvailability({lines:[{productId,quantity:3}]});
+  assert.equal(availability.recommendedWarehouseId,warehouseId);
+  assert.equal(availability.warehouses[0].canFulfilAll,true);
+  assert.equal(availability.warehouses[0].lines[0].availableQty,10);
+  assert.equal(availability.warehouses[1].shortageQty,1);
   await SalesOrder.create({
     salesOrderId,
     orderNumber:`SO-TXN-${Date.now()}`,

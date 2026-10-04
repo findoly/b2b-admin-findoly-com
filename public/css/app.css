@@ -7069,3 +7069,85 @@ th .d-flex {
 .crm-variable-chip-list { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
 .crm-variable-chip-list code { max-width: 100%; overflow-wrap: anywhere; }
 @media (max-width: 767.98px) { .crm-automation-variable-summary { grid-template-columns: 1fr; } }
+
+
+/* Sales order creation timeline and stock-based warehouse recommendation */
+.crm-order-timeline-card .card-body { padding: 1rem 1.15rem; }
+.crm-order-timeline { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); position: relative; }
+.crm-order-timeline::before {
+  content: "";
+  position: absolute;
+  top: 21px;
+  left: 12.5%;
+  right: 12.5%;
+  height: 2px;
+  background: var(--crm-user-card-border, var(--crm-shell-border));
+}
+.crm-order-timeline-step {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .55rem;
+  position: relative;
+  z-index: 1;
+  padding: 0 .5rem;
+  border: 0;
+  background: transparent;
+  color: var(--crm-user-muted-text, var(--crm-shell-muted));
+  text-align: center;
+}
+.crm-order-timeline-step:disabled { opacity: 1; cursor: default; }
+.crm-order-timeline-node {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--crm-user-card-border, var(--crm-shell-border));
+  border-radius: 50%;
+  background: var(--crm-user-card-bg, #fff);
+  color: var(--crm-user-muted-text, var(--crm-shell-muted));
+  font-size: .78rem;
+  font-weight: 800;
+}
+.crm-order-timeline-copy { min-width: 0; display: flex; flex-direction: column; gap: .12rem; }
+.crm-order-timeline-copy strong { color: var(--crm-user-main-text, var(--crm-shell-text)); font-size: .78rem; font-weight: 750; }
+.crm-order-timeline-copy small { color: var(--crm-user-muted-text, var(--crm-shell-muted)); font-size: .65rem; }
+.crm-order-timeline-step.is-active .crm-order-timeline-node {
+  border-color: var(--crm-user-accent, var(--crm-shell-blue));
+  background: var(--crm-user-accent, var(--crm-shell-blue));
+  color: #fff;
+  box-shadow: 0 0 0 5px var(--crm-user-accent-soft, #dbeafe);
+}
+.crm-order-timeline-step.is-active .crm-order-timeline-copy strong { color: var(--crm-user-accent, var(--crm-shell-blue)); }
+.crm-order-timeline-step.is-complete .crm-order-timeline-node {
+  border-color: #16a34a;
+  background: #16a34a;
+  color: #fff;
+}
+.crm-order-timeline-step.is-complete:not(:disabled) { cursor: pointer; }
+.crm-order-timeline-step.is-complete:not(:disabled):hover .crm-order-timeline-copy strong { color: #15803d; }
+.crm-order-warehouse-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--crm-user-card-border, var(--crm-shell-border));
+  border-left-width: 4px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--crm-user-card-bg, #fff) 97%, var(--crm-user-page-bg, #f8fafc));
+}
+.crm-order-warehouse-summary.is-ready { border-left-color: #16a34a; }
+.crm-order-warehouse-summary.is-short { border-left-color: #d97706; }
+
+@media (max-width: 767.98px) {
+  .crm-order-timeline { grid-template-columns: 1fr; gap: .4rem; }
+  .crm-order-timeline::before { top: 21px; bottom: 21px; left: 20px; right: auto; width: 2px; height: auto; }
+  .crm-order-timeline-step { min-height: 48px; flex-direction: row; justify-content: flex-start; gap: .75rem; padding: .15rem 0; text-align: left; }
+  .crm-order-timeline-node { width: 42px; height: 42px; flex: 0 0 42px; }
+  .crm-order-timeline-copy { align-items: flex-start; }
+  .crm-order-warehouse-summary { align-items: flex-start; flex-direction: column; }
+  .crm-order-warehouse-summary .text-end { text-align: left !important; }
+}
