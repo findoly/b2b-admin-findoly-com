@@ -40,6 +40,7 @@ test("customer credit exposure is serialized and rechecked at confirmation",()=>
   assert.match(source,/OPEN_CREDIT_STATUSES=\["draft","created","confirmed"/);
   assert.match(source,/creditGuardVersion:1/);
   assert.match(source,/currentCreditExposure\(order\.customerId,session\)/);
+  assert.match(source,/order\.orderType!=="replacement"/);
   assert.match(source,/CREDIT_APPROVAL_REQUIRED/);
   assert.match(read("controllers/operationsController.js"),/order\.confirm\(req\.params\.id,req\.admin\)/);
 });
