@@ -115,6 +115,13 @@ test("all EJS templates compile before deployment",()=>{
   }
 });
 
+test("sales-order error alert fully collapses when hidden",()=>{
+  const source=fs.readFileSync(path.join(root,"views/orders.ejs"),"utf8");
+  assert.match(source,/x-show="error" x-cloak class="alert alert-danger"/);
+  assert.doesNotMatch(source,/x-show="error" x-cloak class="[^"]*\bd-flex\b/);
+  assert.match(source,/class="d-flex justify-content-between align-items-center gap-2"/);
+});
+
 test("B2B runtime does not request missing legacy UI scripts",()=>{
   const runtime=fs.readFileSync(path.join(root,"public/js/crm-ui-runtime.js"),"utf8");
   const head=fs.readFileSync(path.join(root,"views/partials/head.ejs"),"utf8");
