@@ -85,6 +85,18 @@ test("delivery assignment is atomic and return stock is based on real received s
   assert.match(returns,/line\.outcome==="rejected"/);
 });
 
+test("return creation serializes source quantity reservations",()=>{
+  const salesLine=require("../models/SalesOrder").schema.path("lines").schema;
+  const poLine=require("../models/PurchaseOrder").schema.path("lines").schema;
+  assert.ok(salesLine.path("returnRequestedQty"));
+  assert.ok(poLine.path("returnRequestedQty"));
+  const source=read("services/return-service.js");
+  assert.match(source,/sourceDocument\.save\(\{session\}\)/);
+  assert.match(source,/guardLine\.returnRequestedQty=used\+quantity/);
+  assert.match(source,/releaseRejectedReturnGuards/);
+  assert.match(source,/target\.returnRequestedQty=Math\.max\(0/);
+});
+
 test("product media attachment and HTML descriptions stay scoped and sanitized",()=>{
   const source=read("services/product-service.js");
   const html=read("utils/product-html.js");
