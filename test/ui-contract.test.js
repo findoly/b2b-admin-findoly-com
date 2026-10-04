@@ -105,5 +105,5 @@ test("product management uses dedicated HTML and gallery pages",()=>{
   assert.match(form,/Import HTML/);
   assert.match(form,/descriptionHtml/);
   assert.match(detail,/Photo gallery/);
-  assert.match(detail,/x-html="product\?\.descriptionHtml"/);
+  assert.match(detail,/setSafeHtml\(\$el, product\?\.descriptionHtml\)/);
 });
