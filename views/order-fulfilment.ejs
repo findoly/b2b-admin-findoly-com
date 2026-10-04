@@ -22,20 +22,20 @@
 <div class="row g-4">
   <div class="col-lg-8">
     <div class="card crm-data-card mb-4">
-      <div class="card-header crm-card-heading"><div><h2 class="card-title mb-1" x-text="order?.orderNumber||'Sales order'"></h2><p class="text-muted mb-0" x-text="order?.warehouseSnapshot?(order.warehouseSnapshot.name+' · '+order.warehouseSnapshot.code):'Warehouse'"></p></div><span class="crm-status" :class="statusClass(order?.status)" x-text="humanize(order?.status)"></span></div>
-      <div class="table-responsive"><table class="table crm-table align-middle mb-0"><thead><tr><th>Product</th><th>Stage</th><th class="text-end">Ordered</th><th class="text-end">Reserved</th><th class="text-end">Procurement need</th><th class="text-end">Allocated</th></tr></thead><tbody><template x-for="l in order?.lines||[]" :key="l.salesOrderLineId"><tr><td><strong x-text="l.productName"></strong><div class="text-muted fs-sm" x-text="l.sku"></div></td><td><span class="crm-product-stage-badge" :class="lineStage(l).tone" x-text="lineStage(l).label"></span></td><td class="text-end" x-text="l.quantity"></td><td class="text-end" x-text="l.stockReservedQty||0"></td><td class="text-end" x-text="l.procurementRequiredQty||0"></td><td class="text-end" x-text="l.procurementAllocatedQty||0"></td></tr></template></tbody></table></div>
+      <div class="card-header crm-card-heading"><div><h2 class="card-title mb-1" x-text="crmValue(order,'orderNumber','Sales order')"></h2><p class="text-muted mb-0" x-text="crmValue(order,'warehouseSnapshot',null)?(order.warehouseSnapshot.name+' · '+order.warehouseSnapshot.code):'Warehouse'"></p></div><span class="crm-status" :class="statusClass(crmValue(order,'status',''))" x-text="humanize(crmValue(order,'status',''))"></span></div>
+      <div class="table-responsive"><table class="table crm-table align-middle mb-0"><thead><tr><th>Product</th><th>Stage</th><th class="text-end">Ordered</th><th class="text-end">Reserved</th><th class="text-end">Procurement need</th><th class="text-end">Allocated</th></tr></thead><tbody><template x-for="l in crmList(order,'lines')" :key="l.salesOrderLineId"><tr><td><strong x-text="l.productName"></strong><div class="text-muted fs-sm" x-text="l.sku"></div></td><td><span class="crm-product-stage-badge" :class="lineStage(l).tone" x-text="lineStage(l).label"></span></td><td class="text-end" x-text="l.quantity"></td><td class="text-end" x-text="l.stockReservedQty||0"></td><td class="text-end" x-text="l.procurementRequiredQty||0"></td><td class="text-end" x-text="l.procurementAllocatedQty||0"></td></tr></template></tbody></table></div>
     </div>
   </div>
   <div class="col-lg-4">
     <div class="card crm-data-card">
       <div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Next warehouse action</h2><p class="text-muted mb-0">Only the next valid operational step is enabled.</p></div></div>
       <div class="card-body">
-        <template x-if="['procurement_required','procurement_in_progress'].includes(order?.status)"><div><div class="alert alert-warning">Some stock is still not reserved. Recheck after supplier receipts reach this warehouse.</div><button class="btn btn-primary w-100" @click="recheck()">Recheck warehouse stock</button><% if (can('procurement.create')) { %><a class="btn btn-light w-100 mt-2" :href="'/orders/'+orderId+'/procurement'">Manage supplier sourcing</a><% } %></div></template>
-        <button x-show="order?.status==='stock_ready'" class="btn btn-primary w-100" @click="advance('picking')">Start picking</button>
-        <button x-show="order?.status==='picking'" class="btn btn-primary w-100" @click="advance('packed')">Mark packed</button>
-        <button x-show="order?.status==='packed'" class="btn btn-primary w-100" @click="advance('ready_for_dispatch')">Ready for dispatch</button>
-        <template x-if="order?.status==='ready_for_dispatch'"><div><div class="alert alert-success">The order is packed and ready to leave this warehouse.</div><% if (can('delivery.assign')) { %><a class="btn btn-primary w-100" :href="'/delivery/assign?salesOrderId='+orderId">Assign delivery</a><% } %></div></template>
-        <div x-show="['assigned_for_delivery','out_for_delivery','delivered','partially_delivered','delivery_failed','returned','cancelled'].includes(order?.status)" class="text-muted">Warehouse fulfilment is complete for the current order state.</div>
+        <template x-if="['procurement_required','procurement_in_progress'].includes(crmValue(order,'status',''))"><div><div class="alert alert-warning">Some stock is still not reserved. Recheck after supplier receipts reach this warehouse.</div><button class="btn btn-primary w-100" @click="recheck()">Recheck warehouse stock</button><% if (can('procurement.create')) { %><a class="btn btn-light w-100 mt-2" :href="'/orders/'+orderId+'/procurement'">Manage supplier sourcing</a><% } %></div></template>
+        <button x-show="crmValue(order,'status','')==='stock_ready'" class="btn btn-primary w-100" @click="advance('picking')">Start picking</button>
+        <button x-show="crmValue(order,'status','')==='picking'" class="btn btn-primary w-100" @click="advance('packed')">Mark packed</button>
+        <button x-show="crmValue(order,'status','')==='packed'" class="btn btn-primary w-100" @click="advance('ready_for_dispatch')">Ready for dispatch</button>
+        <template x-if="crmValue(order,'status','')==='ready_for_dispatch'"><div><div class="alert alert-success">The order is packed and ready to leave this warehouse.</div><% if (can('delivery.assign')) { %><a class="btn btn-primary w-100" :href="'/delivery/assign?salesOrderId='+orderId">Assign delivery</a><% } %></div></template>
+        <div x-show="['assigned_for_delivery','out_for_delivery','delivered','partially_delivered','delivery_failed','returned','cancelled'].includes(crmValue(order,'status',''))" class="text-muted">Warehouse fulfilment is complete for the current order state.</div>
       </div>
     </div>
   </div>
@@ -56,7 +56,7 @@ async load(){try{this.order=(await apiFetch('/api/orders/'+this.orderId)).data}c
 async refresh(){this.order=(await apiFetch('/api/orders/'+this.orderId)).data},
 warehouseStageIndex(){
   const map={procurement_required:0,procurement_in_progress:0,stock_ready:1,picking:2,packed:3,ready_for_dispatch:4,assigned_for_delivery:4,out_for_delivery:4,delivered:4,partially_delivered:4,delivery_failed:4,returned:4};
-  return map[this.order?.status]??0;
+  return map[this.crmValue(order,'status','')]??0;
 },
 stageClass(index){
   const current=this.warehouseStageIndex();
@@ -65,14 +65,14 @@ stageClass(index){
   return'is-upcoming';
 },
 currentStageLabel(){
-  const status=this.order?.status;
+  const status=this.crmValue(order,'status','');
   if(status==='procurement_required')return'Procurement required';
   if(status==='procurement_in_progress')return'Procurement in progress';
   if(status==='assigned_for_delivery'||status==='out_for_delivery'||status==='delivered'||status==='partially_delivered'||status==='delivery_failed'||status==='returned')return'Warehouse handover complete';
   return this.warehouseStages[this.warehouseStageIndex()]?.label||humanize(status||'');
 },
 lineStage(line){
-  const status=this.order?.status,required=Number(line.procurementRequiredQty||0),allocated=Number(line.procurementAllocatedQty||0);
+  const status=this.crmValue(order,'status',''),required=Number(line.procurementRequiredQty||0),allocated=Number(line.procurementAllocatedQty||0);
   if(['procurement_required','procurement_in_progress'].includes(status)){
     if(required<=0)return{label:'Stock reserved',tone:'is-success'};
     if(allocated>=required)return{label:'Sourced · awaiting receipt',tone:'is-warning'};
