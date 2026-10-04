@@ -48,6 +48,16 @@ test("purchase orders reject duplicate SKU lines",()=>{
   assert.match(read("services/procurement-service.js"),/DUPLICATE_PO_PRODUCT/);
 });
 
+test("customer and portal mobile identity updates are atomic and unique",()=>{
+  const Customer=require("../models/Customer");
+  assert.equal(Customer.schema.path("normalizedMobile").options.unique,true);
+  const source=read("services/customer-service.js");
+  assert.match(source,/mongoose\.startSession\(\)/);
+  assert.match(source,/ensureMobileAvailable\(mobile,"",session\)/);
+  assert.match(source,/syncUser\(customer,session\)/);
+  assert.match(source,/syncUser\(item,session\)/);
+});
+
 test("pricing changes are transactional and decisions are bounded",()=>{
   const source=read("services/pricing-service.js");
   assert.match(source,/startSession\(\)/);
