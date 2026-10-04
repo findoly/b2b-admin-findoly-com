@@ -64,3 +64,22 @@ test("connected record pages do not require unrelated inventory or product API p
   assert.match(procurementService,/warehouseSnapshot/);
   assert.match(procurementService,/productSnapshot/);
 });
+
+
+test("sales order creation follows customer products warehouse review with stock-based recommendation",()=>{
+  const form=read("views/order-form.ejs");
+  assert.match(form,/Customer → products and pricing → warehouse → review/);
+  assert.match(form,/steps:\['Customer','Products','Warehouse','Review'\]/);
+  assert.match(form,/crm-order-timeline/);
+  assert.match(form,/\/api\/orders\/options\/warehouse-availability\?lines=/);
+  assert.match(form,/Recommended fulfilment warehouse/);
+  assert.match(form,/existing procurement workflow/);
+  assert.doesNotMatch(form,/steps:\['Customer','Warehouse','Products','Review'\]/);
+  const routes=read("routes/orders.js");
+  assert.match(routes,/\/options\/warehouse-availability/);
+  assert.match(routes,/requirePermission\("orders\.create"\),c\.orderWarehouseAvailability/);
+  const service=read("services/order-service.js");
+  assert.match(service,/async function warehouseAvailability/);
+  assert.match(service,/InventoryBalance\.find\(/);
+  assert.match(service,/recommendedWarehouseId/);
+});
