@@ -1,3 +1,4 @@
+const AuditLog=require("../models/AuditLog");
 function notFound(req, res) {
   if (req.originalUrl.startsWith("/api/")) return res.status(404).json({ success: false, code: "NOT_FOUND", message: "Resource not found" });
   return res.status(404).render("error", { title: "Not found", message: "The requested page was not found." });
@@ -8,9 +9,10 @@ function normalizedError(error) {
   if (error?.code === 11000) return { status:409, code:"DUPLICATE_RESOURCE", message:"A record with the same unique value already exists", expose:true };
   return { status:500, code:error?.code||"REQUEST_FAILED", message:"Something went wrong", expose:false };
 }
-function errorHandler(error, req, res, next) {
+async function errorHandler(error, req, res, next) {
   if (res.headersSent) return next(error);
   const normalized=normalizedError(error),status=normalized.status;
+  if(req.mutationAuditLogId){try{await AuditLog.findOneAndUpdate({auditLogId:req.mutationAuditLogId,outcome:"intent"},{$set:{outcome:"failed",completedAt:new Date(),summary:`HTTP ${status} ${normalized.code}`}});}catch(auditError){console.error("Mutation failure audit update failed",auditError);}}
   const message=normalized.expose ? normalized.message : "Something went wrong";
   if (status >= 500) console.error(`[${req.requestId || "no-request-id"}]`, error);
   if (req.originalUrl.startsWith("/api/")) return res.status(status).json({ success: false, code: normalized.code, message, requestId: req.requestId });
