@@ -30,8 +30,8 @@
 </div></div>
 
 <div class="card crm-data-card" x-show="step===2" x-cloak><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">2. Products & selling price</h2><p class="text-muted mb-0">Choose products and quantities first. Warehouse availability is calculated from this demand.</p></div><div class="d-flex gap-2"><label class="visually-hidden" for="product-search">Search products</label><input id="product-search" class="form-control form-control-sm" placeholder="Search products" x-model="productSearch" @input.debounce.300ms="searchProducts()" @keyup.enter="searchProducts()"><button class="btn btn-light btn-sm" type="button" @click="searchProducts()">Find</button><button class="btn btn-light btn-sm" type="button" @click="addLine()">Add product</button></div></div>
-  <div class="table-responsive"><table class="table crm-table align-middle mb-0"><thead><tr><th>Product</th><th>Manufacturer</th><th style="width:120px">Qty</th><th style="width:180px">Agreed price ₹</th><th style="width:55px"></th></tr></thead><tbody><template x-for="(line,index) in form.lines" :key="line.key"><tr><td><select class="form-select" x-model="line.productId" @change="productsChanged()"><option value="">Select product</option><template x-for="p in products" :key="p.productId"><option :value="p.productId" x-text="p.name+' · '+p.sku"></option></template></select></td><td x-text="crmValue(product(line.productId),'manufacturer','—')"></td><td><input type="number" min="1" class="form-control" x-model.number="line.quantity" @input="productsChanged()"></td><td><input type="number" min="0" step="0.01" class="form-control" placeholder="Auto" x-model="line.unitPriceRupees"><div class="text-muted fs-sm" x-show="product(line.productId)" x-text="'Reference '+money(crmValue(product(line.productId),'referenceSellingPricePaise',0))"></div></td><td><button class="btn btn-light btn-sm" type="button" @click="removeLine(index)" :disabled="form.lines.length===1">×</button></td></tr></template></tbody></table></div>
-  <div class="d-flex justify-content-between p-3"><button class="btn btn-light" type="button" @click="go(1)">Back</button><button class="btn btn-primary" type="button" @click="next()" :disabled="warehouseAvailabilityLoading" x-text="warehouseAvailabilityLoading?'Checking stock…':'Continue'"></button></div>
+  <div class="table-responsive"><table class="table crm-table align-middle mb-0"><thead><tr><th>Product</th><th>Manufacturer</th><th style="width:120px">Qty</th><th style="width:180px">Agreed price ₹</th><th style="width:55px"></th></tr></thead><tbody><template x-for="(line,index) in form.lines" :key="line.key"><tr><td><select class="form-select" x-model="line.productId" @change="productChanged(line)"><option value="">Select product</option><template x-for="p in products" :key="p.productId"><option :value="p.productId" x-text="p.name+' · '+p.sku"></option></template></select></td><td x-text="crmValue(product(line.productId),'manufacturer','—')"></td><td><input type="number" min="1" class="form-control" x-model.number="line.quantity" @input="quantityChanged(line)"></td><td><input type="number" min="0" step="0.01" class="form-control" placeholder="Auto" aria-label="Agreed unit price in rupees" x-model="line.unitPriceRupees" @input="priceEdited(line)"><div class="text-muted fs-sm" x-show="product(line.productId)" x-text="'Reference '+money(crmValue(product(line.productId),'referenceSellingPricePaise',0))"></div><div class="fs-sm mt-1" aria-live="polite" x-text="priceLabel(line)"></div><div x-show="line.priceError" class="text-danger fs-sm" role="alert"><span x-text="line.priceError"></span> <button class="btn btn-link btn-sm p-0" type="button" @click="refreshLinePrice(line)">Retry price</button></div><button x-show="line.priceMode==='manual'" class="btn btn-link btn-sm p-0" type="button" @click="refreshLinePrice(line,true)">Use customer price</button></td><td><button class="btn btn-light btn-sm" type="button" @click="removeLine(index)" :disabled="form.lines.length===1">×</button></td></tr></template></tbody></table></div>
+  <div class="d-flex justify-content-between p-3"><button class="btn btn-light" type="button" @click="go(1)">Back</button><button class="btn btn-primary" type="button" @click="next()" :disabled="warehouseAvailabilityLoading||pricingPending" x-text="warehouseAvailabilityLoading?'Checking stock…':'Continue'"></button></div>
 </div>
 
 <div class="card crm-data-card" x-show="step===3" x-cloak><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">3. Warehouse & commercial terms</h2><p class="text-muted mb-0">The best warehouse is selected automatically from current available stock for the chosen products.</p></div><span class="badge bg-primary bg-opacity-10 text-primary" x-show="selectedWarehouse">Auto-selected</span></div><div class="card-body">
@@ -63,8 +63,9 @@
 <script nonce="<%= cspNonce %>">
 const ORDER_DRAFT_KEY='findoly.b2b.order-draft.v1';
 function orderFormPage(){return{
-steps:['Customer','Products','Warehouse','Review'],stepNotes:['Choose customer account','Add products, quantity & price','Auto-match stock & terms','Confirm before creation'],step:1,customers:[],products:[],warehouses:[],customerSearch:'',productSearch:'',error:'',saving:false,warehouseAvailabilityLoading:false,customerAbort:null,productAbort:null,warehouseAbort:null,draftTimer:null,submissionKey:requestIdempotencyKey(),form:{customerId:'',warehouseId:'',paymentTermDays:0,gstTreatment:'unclassified',notes:'',lines:[]},
-newLine(){return{key:crypto.randomUUID(),productId:'',quantity:1,unitPriceRupees:''}},
+steps:['Customer','Products','Warehouse','Review'],stepNotes:['Choose customer account','Add products, quantity & price','Auto-match stock & terms','Confirm before creation'],step:1,customers:[],products:[],warehouses:[],customerSearch:'',productSearch:'',error:'',saving:false,warehouseAvailabilityLoading:false,customerAbort:null,productAbort:null,warehouseAbort:null,priceRequests:{},draftTimer:null,submissionKey:requestIdempotencyKey(),form:{customerId:'',warehouseId:'',paymentTermDays:0,gstTreatment:'unclassified',notes:'',lines:[]},
+newLine(){return{key:crypto.randomUUID(),productId:'',quantity:1,unitPriceRupees:'',priceMode:'auto',priceSource:'',priceLoading:false,priceError:''}},
+get pricingPending(){return this.form.lines.some(line=>line.priceLoading)},
 get selectedCustomer(){return this.customers.find(x=>x.customerId===this.form.customerId)||null},
 get selectedWarehouse(){return this.warehouses.find(x=>x.warehouseId===this.form.warehouseId)||null},
 get selectedWarehouseAvailability(){return this.selectedWarehouse||null},
@@ -100,6 +101,8 @@ async load(){
     const[c,p]=await Promise.all([apiFetch('/api/customers?limit=50'),apiFetch('/api/products?limit=50')]);
     this.customers=c.data.items||[];this.products=p.data.items||[];
     this.restoreDraft();
+    for(const line of this.form.lines){line.key=line.key||crypto.randomUUID();line.priceMode=line.priceMode||(String(line.unitPriceRupees??'')===''?'auto':'manual');line.priceLoading=false;line.priceError='';}
+    await Promise.all(this.form.lines.map(line=>this.refreshLinePrice(line)));
     this.$watch('form',()=>this.scheduleDraftSave());
   }catch(e){this.error=e.message}
 },
@@ -126,14 +129,50 @@ async searchProducts(){
     this.products=[...retained,...items];
   }catch(e){if(!controller.signal.aborted&&this.productAbort===controller&&e.name!=='AbortError')this.error=e.message}
 },
-customerChanged(){if(this.selectedCustomer)this.form.paymentTermDays=Number(this.selectedCustomer.paymentTermDays||0)},
+async customerChanged(){
+  if(this.selectedCustomer)this.form.paymentTermDays=Number(this.selectedCustomer.paymentTermDays||0);
+  await Promise.all(this.form.lines.map(line=>this.refreshLinePrice(line,true)));
+},
+productChanged(line){this.productsChanged();return this.refreshLinePrice(line,true)},
+quantityChanged(line){this.productsChanged();return this.refreshLinePrice(line)},
+priceEdited(line){
+  this.priceRequests[line.key]?.abort();delete this.priceRequests[line.key];
+  line.priceLoading=false;line.priceError='';line.priceSource='';line.priceMode='manual';
+},
+priceLabel(line){
+  if(line.priceLoading)return 'Loading customer price…';
+  if(line.priceMode==='manual')return 'Manually entered price';
+  if(line.priceSource==='negotiated')return 'Negotiated customer price';
+  if(line.priceSource==='reference')return 'Reference price · no eligible customer agreement';
+  return '';
+},
+async refreshLinePrice(line,reset=false){
+  this.priceRequests[line.key]?.abort();delete this.priceRequests[line.key];
+  line.priceLoading=false;line.priceError='';
+  if(reset){line.priceMode='auto';line.unitPriceRupees='';line.priceSource='';}
+  if(line.priceMode==='manual')return;
+  line.priceMode='auto';line.unitPriceRupees='';line.priceSource='';
+  const customerId=this.form.customerId,productId=line.productId,quantity=Number(line.quantity);
+  if(!customerId||!productId||!Number.isInteger(quantity)||quantity<1)return;
+  const controller=new AbortController();this.priceRequests[line.key]=controller;line.priceLoading=true;
+  try{
+    const result=(await apiFetch('/api/orders/options/price?customerId='+encodeURIComponent(customerId)+'&productId='+encodeURIComponent(productId)+'&quantity='+quantity,{signal:controller.signal})).data;
+    if(controller.signal.aborted||this.priceRequests[line.key]!==controller||!this.form.lines.includes(line))return;
+    line.unitPriceRupees=(result.unitPricePaise/100).toFixed(2);line.priceSource=result.source;
+  }catch(e){
+    if(!controller.signal.aborted&&this.priceRequests[line.key]===controller)line.priceError=e.message||'Unable to load the customer price.';
+  }finally{
+    if(this.priceRequests[line.key]===controller){line.priceLoading=false;delete this.priceRequests[line.key];}
+  }
+},
 productsChanged(){this.warehouseAbort?.abort();this.warehouseAbort=null;this.warehouseAvailabilityLoading=false;this.form.warehouseId='';this.warehouses=[]},
 addLine(){this.form.lines.push(this.newLine());this.productsChanged()},
-removeLine(i){if(this.form.lines.length>1){this.form.lines.splice(i,1);this.productsChanged()}},
+removeLine(i){if(this.form.lines.length>1){const line=this.form.lines[i];this.priceRequests[line.key]?.abort();delete this.priceRequests[line.key];this.form.lines.splice(i,1);this.productsChanged()}},
 validateStep(target){
   this.error='';
   if(target>1&&!this.form.customerId){this.error='Select a customer.';return false}
-  if(target>2&&(this.form.lines.some(x=>!x.productId||Number(x.quantity)<1)||new Set(this.form.lines.map(x=>x.productId)).size!==this.form.lines.length)){this.error='Complete every product line and do not add the same product twice.';return false}
+  if(target>2&&(this.form.lines.some(x=>!x.productId||(!Number.isInteger(Number(x.quantity))||Number(x.quantity)<1))||new Set(this.form.lines.map(x=>x.productId)).size!==this.form.lines.length)){this.error='Complete every product line and do not add the same product twice.';return false}
+  if(target>2&&this.form.lines.some(line=>line.priceLoading||line.priceError||(line.priceMode==='auto'&&line.unitPriceRupees===''))){this.error='Wait for customer prices to load, or retry the failed price lookup.';return false}
   if(target>3&&!this.form.warehouseId){this.error='No fulfilment warehouse is selected.';return false}
   return true
 },
