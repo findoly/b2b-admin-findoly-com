@@ -3,6 +3,7 @@ const test=require("node:test");
 const assert=require("node:assert/strict");
 const fs=require("fs");
 const path=require("path");
+const ejs=require("ejs");
 const root=path.resolve(__dirname,"..");
 
 function walk(dir,out=[]){for(const entry of fs.readdirSync(dir,{withFileTypes:true})){if(["node_modules",".git"].includes(entry.name))continue;const p=path.join(dir,entry.name);entry.isDirectory()?walk(p,out):out.push(p)}return out}
@@ -79,6 +80,19 @@ test("server rendered admin shell exposes CSRF state without a redundant auth bo
   assert.match(head,/__crmServerAdmin/);
   assert.match(scripts,/X-CSRF-Token/);
   assert.match(scripts,/if\(this\.admin\?\.employeeId\)return/);
+});
+
+test("shared head partial compiles with and without optional server locals",()=>{
+  const file=path.join(root,"views/partials/head.ejs");
+  const head=fs.readFileSync(file,"utf8");
+  const base={title:"Dashboard",appName:"Findoly B2B Admin",cspNonce:"test-nonce"};
+  const rendered=ejs.render(head,{...base,csrfToken:"csrf-test-token",currentAdmin:{employeeId:"employee-test",mobile:"9000000000"}},{filename:file});
+  assert.match(rendered,/meta name="csrf-token" content="csrf-test-token"/);
+  assert.match(rendered,/window\.__crmServerAdmin = \{"employeeId":"employee-test","mobile":"9000000000"\}/);
+  assert.doesNotMatch(rendered,/\\n\s*<meta name="csrf-token"/);
+  const fallback=ejs.render(head,base,{filename:file});
+  assert.match(fallback,/meta name="csrf-token" content=""/);
+  assert.match(fallback,/window\.__crmServerAdmin = null/);
 });
 
 
