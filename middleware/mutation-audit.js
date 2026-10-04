@@ -1,7 +1,7 @@
 const AuditLog=require("../models/AuditLog");
 const SAFE_METHODS=new Set(["GET","HEAD","OPTIONS"]);
 async function requireMutationAudit(req,res,next){
-  if(process.env.SKIP_DB==="true"||SAFE_METHODS.has(req.method)||!req.admin)return next();
+  if((process.env.NODE_ENV==="test"&&process.env.SKIP_DB==="true")||SAFE_METHODS.has(req.method)||!req.admin)return next();
   try{
     await AuditLog.create({
       actorEmployeeId:req.admin.employeeId,
