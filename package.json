@@ -17,13 +17,13 @@
     "qa:production": "npm run qa:static && npm run qa:critical && npm test",
     "ensure:indexes": "node scripts/run-with-runtime.js scripts/ensure-indexes.js",
     "qa:preinstall": "node scripts/preinstall-qa.js",
-    "backfill:inventory-cost": "node scripts/run-with-runtime.js scripts/backfill-inventory-cost.js"
+    "backfill:inventory-cost": "node scripts/run-with-runtime.js scripts/backfill-inventory-cost.js",
+    "qa:transactions": "node --test test/transaction-integration.test.js"
   },
   "dependencies": {
     "alpinejs": "^3.15.12",
     "bootstrap": "5.3.8",
     "cookie-parser": "^1.4.7",
-    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "ejs": "^3.1.10",
     "express": "^4.21.2",
@@ -31,7 +31,8 @@
     "helmet": "^8.1.0",
     "mongoose": "^8.24.1",
     "morgan": "^1.10.0",
-    "sanitize-html": "2.17.7"
+    "sanitize-html": "2.17.7",
+    "@alpinejs/csp": "^3.15.12"
   },
   "devDependencies": {
     "nodemon": "^3.1.10",
