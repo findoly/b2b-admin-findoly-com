@@ -20,7 +20,7 @@ function errorResponse(res,status,code,message){
   return res.status(status).json({success:false,code,message});
 }
 async function reserve(actorEmployeeId,idempotencyKey,requestSignature){
-  const expiresAt=new Date(Date.now()+7*24*60*60*1000);
+  const expiresAt=new Date(Date.now()+24*60*60*1000);
   try{
     const created=await MutationIdempotency.create({actorEmployeeId,idempotencyKey,requestSignature,status:"pending",expiresAt});
     return {record:created.toObject(),owner:true};
@@ -56,6 +56,8 @@ async function fail(id,body,status){
 }
 async function requireMutationIdempotency(req,res,next){
   if(SAFE_METHODS.has(req.method)||!req.admin)return next();
+  const requestPath=String(req.originalUrl||req.url||"").split("?")[0];
+  if(/\/(?:upload-url|download-url)$/.test(requestPath))return next();
   const key=String(req.get("idempotency-key")||"").trim();
   if(!key)return next();
   if(!KEY_PATTERN.test(key))return errorResponse(res,400,"IDEMPOTENCY_KEY_INVALID","Idempotency-Key must be 16 to 128 letters, numbers, dots, colons, underscores or hyphens.");
