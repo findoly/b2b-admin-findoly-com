@@ -111,7 +111,7 @@ test("customer 360 credit exposure includes confirmed uninvoiced orders",()=>{
   const source=read("services/customer-360-service.js");
   assert.match(source,/openOrderExposurePaise/);
   assert.match(source,/creditExposurePaise=outstandingPaise\+openOrderExposurePaise/);
-  assert.match(read("views/customers.ejs"),/selected360\?\.creditExposurePaise/);
+  assert.match(read("views/customers.ejs"),/crmValue\(selected360,'creditExposurePaise',0\)/);
 });
 
 test("mutations keep a durable pending audit intent until completion",()=>{
