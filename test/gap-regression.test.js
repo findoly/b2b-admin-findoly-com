@@ -114,11 +114,16 @@ test("customer 360 credit exposure includes confirmed uninvoiced orders",()=>{
   assert.match(read("views/customers.ejs"),/selected360\?\.creditExposurePaise/);
 });
 
-test("mutations require an audit intent before business routes execute",()=>{
+test("mutations keep a durable pending audit intent until completion",()=>{
   const middleware=read("middleware/mutation-audit.js");
+  const audit=read("services/audit-service.js");
   const routes=read("routes/main.js");
   assert.match(middleware,/action:"mutation\.intent"/);
+  assert.match(middleware,/outcome:"intent"/);
+  assert.match(middleware,/req\.mutationAuditLogId=intent\.auditLogId/);
   assert.match(middleware,/AUDIT_UNAVAILABLE/);
+  assert.match(audit,/outcome:"completed"/);
+  assert.match(audit,/durable mutation intent remains pending/);
   assert.match(routes,/r\.use\(apiAuth\);r\.use\(requireMutationAudit\)/);
 });
 
