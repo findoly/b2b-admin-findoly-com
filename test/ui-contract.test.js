@@ -81,6 +81,18 @@ test("server rendered admin shell exposes CSRF state without a redundant auth bo
   assert.match(scripts,/if\(this\.admin\?\.employeeId\)return/);
 });
 
+
+test("Alpine expressions stay within CSP evaluator syntax",()=>{
+  for(const file of walk(path.join(root,"views")).filter(x=>x.endsWith(".ejs"))){
+    const source=fs.readFileSync(file,"utf8");
+    assert.doesNotMatch(source,/\\bx-html\\s*=/,path.relative(root,file));
+    for(const match of source.matchAll(/\\b(?:x-[\\w:.@-]+|@[\\w.:-]+|:[\\w.-]+)=(?:"([^"]*)"|'([^']*)')/g)){
+      const expression=match[1]??match[2]??"";
+      assert.doesNotMatch(expression,/=>|\\.{3}|\\x60|\\b(?:window|document|JSON|parseInt|parseFloat)\\b/,path.relative(root,file));
+    }
+  }
+});
+
 test("delivery workflow uses dedicated connected pages",()=>{
   const routes=fs.readFileSync(path.join(root,"routes/frontend.js"),"utf8");
   const list=fs.readFileSync(path.join(root,"views/delivery.ejs"),"utf8");
