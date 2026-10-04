@@ -33,6 +33,17 @@ test("sales-order procurement requirement is explicit and allocation is bounded"
   assert.match(source,/Employee\.findOne\(\{employeeId:assignedEmployeeId,status:"active"\}\)/);
 });
 
+test("customer credit exposure is serialized and rechecked at confirmation",()=>{
+  const customer=require("../models/Customer");
+  assert.ok(customer.schema.path("creditGuardVersion"));
+  const source=read("services/order-service.js");
+  assert.match(source,/OPEN_CREDIT_STATUSES=\["draft","created","confirmed"/);
+  assert.match(source,/creditGuardVersion:1/);
+  assert.match(source,/currentCreditExposure\(order\.customerId,session\)/);
+  assert.match(source,/CREDIT_APPROVAL_REQUIRED/);
+  assert.match(read("controllers/operationsController.js"),/order\.confirm\(req\.params\.id,req\.admin\)/);
+});
+
 test("purchase orders reject duplicate SKU lines",()=>{
   assert.match(read("services/procurement-service.js"),/DUPLICATE_PO_PRODUCT/);
 });
