@@ -7,14 +7,16 @@ const test=require("node:test");
 const assert=require("node:assert/strict");
 const request=require("supertest");
 const app=require("../app");
-const {encodeSession}=require("../middleware/auth");
+const {encodeSession,csrfTokenForSession}=require("../middleware/auth");
 const {normalizedError}=require("../middleware/error");
 
-function authCookie(permissions=[]){
+function authSession(permissions=[]){
   const now=Date.now();
-  const token=encodeSession({v:1,employeeId:"a".repeat(32),name:"QA Employee",mobile:"9000000000",roleId:"b".repeat(32),roleName:"QA",permissions,iat:now,exp:now+60000});
-  return `findoly_b2b_admin=${token}`;
+  const session={v:1,employeeId:"a".repeat(32),name:"QA Employee",mobile:"9000000000",roleId:"b".repeat(32),roleName:"QA",permissions,iat:now,exp:now+60000};
+  return {cookie:`findoly_b2b_admin=${encodeSession(session)}`,csrf:csrfTokenForSession(session)};
 }
+function authCookie(permissions=[]){return authSession(permissions).cookie;}
+function mutationHeaders(permissions=[]){const auth=authSession(permissions);return {Cookie:auth.cookie,"X-CSRF-Token":auth.csrf};}
 
 test("health is ready without DB in test mode",async()=>{
   const r=await request(app).get("/api/health");
@@ -39,6 +41,13 @@ test("foreign-origin mutations are rejected before controller execution",async()
   assert.equal(r.body.code,"ORIGIN_NOT_ALLOWED");
 });
 
+
+test("authenticated mutations require a CSRF token",async()=>{
+  const r=await request(app).post("/api/customers").set("Cookie",authCookie(["customers.create"])).send({});
+  assert.equal(r.status,403);
+  assert.equal(r.body.code,"CSRF_TOKEN_INVALID");
+});
+
 test("permission middleware rejects authenticated users without feature permission",async()=>{
   const r=await request(app).get("/api/audit").set("Cookie",authCookie([]));
   assert.equal(r.status,403);
@@ -46,7 +55,7 @@ test("permission middleware rejects authenticated users without feature permissi
 });
 
 test("customer credit fields require customers.credit permission",async()=>{
-  const r=await request(app).post("/api/customers").set("Cookie",authCookie(["customers.create"])).send({creditLimitPaise:10000});
+  const r=await request(app).post("/api/customers").set(mutationHeaders(["customers.create"])).send({creditLimitPaise:10000});
   assert.equal(r.status,403);
   assert.match(r.body.message,/credit permission/i);
 });
@@ -62,13 +71,13 @@ test("new cancellation and stock-recheck routes remain protected",async()=>{
 });
 
 test("product media permission does not require broad storage.manage access",async()=>{
-  const r=await request(app).post("/api/products/media/upload-url").set("Cookie",authCookie(["products.media"])).send({kind:"image",fileName:"test.jpg",contentType:"image/jpeg",sizeBytes:100});
+  const r=await request(app).post("/api/products/media/upload-url").set(mutationHeaders(["products.media"])).send({kind:"image",fileName:"test.jpg",contentType:"image/jpeg",sizeBytes:100});
   assert.notEqual(r.status,403);
   assert.equal(r.status,503);
 });
 
 test("general storage upload still requires storage.manage",async()=>{
-  const r=await request(app).post("/api/storage/upload-url").set("Cookie",authCookie(["products.media"])).send({fileName:"test.jpg",contentType:"image/jpeg",sizeBytes:100});
+  const r=await request(app).post("/api/storage/upload-url").set(mutationHeaders(["products.media"])).send({fileName:"test.jpg",contentType:"image/jpeg",sizeBytes:100});
   assert.equal(r.status,403);
 });
 
@@ -92,7 +101,7 @@ test("delivery assignment options do not require employee-management permission"
 
 test("product gallery mutation requires products.media permission",async()=>{
   const id="e".repeat(32),mediaId="f".repeat(32);
-  const r=await request(app).put(`/api/products/${id}/media/${mediaId}`).set("Cookie",authCookie(["products.view"])).send({isPrimary:true});
+  const r=await request(app).put(`/api/products/${id}/media/${mediaId}`).set(mutationHeaders(["products.view"])).send({isPrimary:true});
   assert.equal(r.status,403);
 });
 
@@ -100,4 +109,5 @@ test("product gallery mutation requires products.media permission",async()=>{
 test("mongoose validation and duplicate errors map to client-safe HTTP statuses",()=>{
   assert.deepEqual(normalizedError({name:"ValidationError"}),{status:400,code:"VALIDATION_ERROR",message:"Request data is invalid",expose:true});
   assert.deepEqual(normalizedError({code:11000}),{status:409,code:"DUPLICATE_RESOURCE",message:"A record with the same unique value already exists",expose:true});
+  assert.deepEqual(normalizedError({code:112,message:"WriteConflict"}),{status:409,code:"RETRYABLE_CONFLICT",message:"The record changed while this action was being processed. Retry the action.",expose:true});
 });

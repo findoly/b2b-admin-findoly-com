@@ -1,14 +1,53 @@
 <script nonce="<%= cspNonce %>">
-  async function apiFetch(url, options = {}) {
-    const response = await fetch(url, { credentials: 'same-origin', ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}) } });
-    const body = await response.json().catch(() => ({ success: false, message: 'Invalid server response' }));
-    if (response.status === 401) {
-      window.location.href = '/login?returnTo=' + encodeURIComponent(location.pathname + location.search);
-      throw new Error('Authentication required');
-    }
-    if (!response.ok || body.success === false) throw new Error(body.message || 'Request failed');
-    return body;
+  const UNSAFE_HTTP_METHODS = new Set(['POST','PUT','PATCH','DELETE']);
+
+  function requestIdempotencyKey() {
+    return 'web:' + crypto.randomUUID();
   }
+
+  async function apiFetch(url, options = {}) {
+    const method = String(options.method || 'GET').toUpperCase();
+    const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+    if (UNSAFE_HTTP_METHODS.has(method)) {
+      const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+      if (csrf && !headers['X-CSRF-Token'] && !headers['x-csrf-token']) headers['X-CSRF-Token'] = csrf;
+      if (!headers['Idempotency-Key'] && !headers['idempotency-key']) headers['Idempotency-Key'] = requestIdempotencyKey();
+    }
+
+    const execute = async () => {
+      const response = await fetch(url, { credentials: 'same-origin', ...options, method, headers });
+      const body = await response.json().catch(() => ({ success: false, message: 'Invalid server response' }));
+      if (response.status === 401) {
+        window.location.href = '/login?returnTo=' + encodeURIComponent(location.pathname + location.search);
+        const error = new Error('Authentication required');
+        error.code = 'AUTHENTICATION_REQUIRED';
+        error.status = 401;
+        throw error;
+      }
+      if (!response.ok || body.success === false) {
+        const error = new Error(body.message || 'Request failed');
+        error.code = body.code || 'REQUEST_FAILED';
+        error.status = response.status;
+        error.requestId = body.requestId || '';
+        throw error;
+      }
+      return body;
+    };
+
+    let retried = false;
+    while (true) {
+      try {
+        return await execute();
+      } catch (error) {
+        const retryableNetwork = error instanceof TypeError;
+        const retryableConflict = error.code === 'RETRYABLE_CONFLICT';
+        if (retried || (!retryableNetwork && !retryableConflict) || !UNSAFE_HTTP_METHODS.has(method)) throw error;
+        retried = true;
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+    }
+  }
+
   function money(paise) { const amount=Number(paise); return new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2}).format(Number.isFinite(amount)?amount/100:0); }
   function safeDate(value){if(!value)return null;const d=new Date(value);return Number.isFinite(d.getTime())?d:null;}
   function formatDate(value){const d=safeDate(value);return d?new Intl.DateTimeFormat('en-IN',{dateStyle:'medium',timeStyle:'short'}).format(d):'—';}
@@ -16,20 +55,71 @@
   function shortDate(value){return formatDate(value);}
   function humanize(value){return String(value||'—').replace(/[_-]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());}
   function statusClass(value){return 'status-'+String(value||'unknown').toLowerCase().replace(/_/g,'-');}
-  function showCrmToast(message,type='success'){if(!message)return;let region=document.getElementById('crm-toast-region');if(!region){region=document.createElement('div');region.id='crm-toast-region';region.className='crm-toast-region';document.body.appendChild(region);}const toast=document.createElement('div');toast.className='crm-toast crm-toast-'+(type==='error'?'error':'success');toast.innerHTML='<span class="crm-toast-icon">'+(type==='error'?'!':'✓')+'</span><div class="crm-toast-content"><strong>'+(type==='error'?'Unable to complete action':'Success')+'</strong><span></span></div>';toast.querySelector('.crm-toast-content span').textContent=message;region.appendChild(toast);setTimeout(()=>toast.remove(),type==='error'?9000:5000);}
+  function showCrmToast(message,type='success'){if(!message)return;let region=document.getElementById('crm-toast-region');if(!region){region=document.createElement('div');region.id='crm-toast-region';region.className='crm-toast-region';region.setAttribute('aria-live','polite');document.body.appendChild(region);}const toast=document.createElement('div');toast.className='crm-toast crm-toast-'+(type==='error'?'error':'success');toast.innerHTML='<span class="crm-toast-icon">'+(type==='error'?'!':'✓')+'</span><div class="crm-toast-content"><strong>'+(type==='error'?'Unable to complete action':'Success')+'</strong><span></span></div>';toast.querySelector('.crm-toast-content span').textContent=message;region.appendChild(toast);setTimeout(()=>toast.remove(),type==='error'?9000:5000);}
   function crmPager(loadMethod,pageSize=50){return{page:1,pages:1,total:0,pageSize,setPageMeta(data){this.page=Number(data?.page||1);this.pages=Math.max(1,Number(data?.pages||1));this.total=Number(data?.total||0)},async goPage(next){const target=Math.max(1,Math.min(Number(next)||1,this.pages||1));if(target===this.page)return;this.page=target;await this[loadMethod]()},resetPage(){this.page=1}}}
-  async function uploadBusinessAttachment(area,file){if(!file)throw new Error('Select a file to upload');const meta=await apiFetch('/api/storage/'+area+'/upload-url',{method:'POST',body:JSON.stringify({fileName:file.name,sizeBytes:file.size,contentType:file.type||'application/octet-stream'})});const target=meta.data||{};const response=await fetch(target.url,{method:target.method||'PUT',headers:target.headers||{},body:file});if(!response.ok)throw new Error('File upload failed');return{key:target.key,fileName:target.fileName||file.name};}
+
+  function putPresignedUpload(target,file,onProgress){
+    return new Promise((resolve,reject)=>{
+      const xhr=new XMLHttpRequest();
+      xhr.open(target.method||'PUT',target.url,true);
+      for(const [key,value] of Object.entries(target.headers||{}))xhr.setRequestHeader(key,value);
+      xhr.upload.onprogress=event=>{if(event.lengthComputable&&typeof onProgress==='function')onProgress(Math.round((event.loaded/event.total)*100));};
+      xhr.onload=()=>{if(xhr.status>=200&&xhr.status<300)return resolve();const error=new Error('File upload failed');error.status=xhr.status;reject(error);};
+      xhr.onerror=()=>reject(Object.assign(new Error('File upload failed because the network connection was interrupted'),{status:0}));
+      xhr.send(file);
+    });
+  }
+  async function uploadBusinessAttachment(area,file,onProgress){
+    if(!file)throw new Error('Select a file to upload');
+    const createTarget=async()=>(await apiFetch('/api/storage/'+area+'/upload-url',{method:'POST',body:JSON.stringify({fileName:file.name,sizeBytes:file.size,contentType:file.type||'application/octet-stream'})})).data||{};
+    let target=await createTarget();
+    try{
+      await putPresignedUpload(target,file,onProgress);
+    }catch(error){
+      if(![401,403].includes(Number(error.status)))throw error;
+      target=await createTarget();
+      await putPresignedUpload(target,file,onProgress);
+    }
+    if(typeof onProgress==='function')onProgress(100);
+    return{key:target.key,fileName:target.fileName||file.name};
+  }
   async function openBusinessAttachment(area,key){const result=await apiFetch('/api/storage/'+area+'/download-url',{method:'POST',body:JSON.stringify({key})});if(!result.data?.url)throw new Error('Download URL was not created');window.open(result.data.url,'_blank','noopener,noreferrer');}
   function attachmentName(key){const part=String(key||'').split('/').pop()||'';return part.replace(/^[a-f0-9]{32}-/,'')||'Document';}
+
+  function joinTruthy(values,separator=' · '){return (Array.isArray(values)?values:[]).filter(Boolean).join(separator);}
+  function reverseCopy(values){return Array.isArray(values)?values.slice().reverse():[];}
+  function moneyFromRupees(value){return money(Math.round(Number(value||0)*100));}
+  function bodyData(name,fallback=''){return document.body?.dataset?.[name]||fallback;}
+  function setSafeHtml(element,html){if(element)element.innerHTML=String(html||'');}
+  function syncMobileDrawer(open){document.documentElement.classList.toggle('crm-mobile-drawer-open',Boolean(open));document.body.classList.toggle('crm-mobile-drawer-open',Boolean(open));}
+
   const CRM_SIDEBAR_COLLAPSED_KEY='leadops.crm.sidebar.collapsed.v1';
   function readSidebarCollapsed(){try{return localStorage.getItem(CRM_SIDEBAR_COLLAPSED_KEY)==='1'}catch(_){return false}}
   function syncSidebarDocumentState(collapsed){document.documentElement.classList.toggle('crm-sidebar-saved-collapsed',Boolean(collapsed));}
   function crmShell(){return{
-    admin:{},shellError:'',sidebarOpen:false,sidebarCollapsed:readSidebarCollapsed(),
-    async initShell(){syncSidebarDocumentState(this.sidebarCollapsed);try{this.admin=(await apiFetch('/api/auth/me')).data||{};}catch(e){this.shellError=e.message;}},
+    admin:window.__crmServerAdmin||{},shellError:'',sidebarOpen:false,sidebarCollapsed:readSidebarCollapsed(),
+    Number,String,Boolean,Math,Date,Array,Object,money,safeDate,formatDate,formatDateOnly,shortDate,humanize,statusClass,showCrmToast,joinTruthy,reverseCopy,moneyFromRupees,bodyData,setSafeHtml,syncMobileDrawer,
+    async initShell(){
+      syncSidebarDocumentState(this.sidebarCollapsed);
+      if(this.admin?.employeeId)return;
+      try{this.admin=(await apiFetch('/api/auth/me')).data||{};}catch(e){this.shellError=e.message;}
+    },
     toggleSidebar(){this.sidebarCollapsed=!this.sidebarCollapsed;syncSidebarDocumentState(this.sidebarCollapsed);try{localStorage.setItem(CRM_SIDEBAR_COLLAPSED_KEY,this.sidebarCollapsed?'1':'0')}catch(_){}},
     can(permission){const p=Array.isArray(this.admin.permissions)?this.admin.permissions:[];return p.includes('*')||p.includes(permission);},
     pathIs(path){return location.pathname===path||location.pathname.startsWith(path+'/');},
     async logout(){try{await apiFetch('/api/auth/logout',{method:'POST',body:'{}'});location.href='/login';}catch(e){this.shellError=e.message;}}
   }}
+
+  document.addEventListener('alpine:init',()=>{
+    const registered=new Set();
+    document.querySelectorAll('[x-data]').forEach(element=>{
+      const expression=String(element.getAttribute('x-data')||'').trim();
+      const match=expression.match(/^([A-Za-z_$][\w$]*)\(\)$/);
+      if(!match)return;
+      const name=match[1],factory=window[name];
+      if(typeof factory!=='function')return;
+      if(!registered.has(name)){Alpine.data(name,factory);registered.add(name);}
+      element.setAttribute('x-data',name);
+    });
+  });
 </script>

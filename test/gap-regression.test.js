@@ -125,9 +125,29 @@ test("mutations keep a durable pending audit intent until completion",()=>{
   assert.match(audit,/outcome:"completed"/);
   assert.match(audit,/durable mutation intent remains pending/);
   assert.match(read("middleware/error.js"),/outcome:"failed"/);
-  assert.match(routes,/r\.use\(apiAuth\);r\.use\(requireMutationAudit\)/);
+  assert.match(routes,/r\.use\(apiAuth\);r\.use\(requireMutationIdempotency\);r\.use\(requireMutationAudit\)/);
 });
 
+
+
+test("authenticated mutations support durable idempotency replay protection",()=>{
+  const middleware=read("middleware/idempotency.js");
+  const model=read("models/MutationIdempotency.js");
+  const scripts=read("views/partials/scripts.ejs");
+  assert.match(middleware,/IDEMPOTENCY_KEY_REUSED/);
+  assert.match(middleware,/IDEMPOTENCY_IN_PROGRESS/);
+  assert.match(model,/actorEmployeeId:1,idempotencyKey:1/);
+  assert.match(model,/expireAfterSeconds:0/);
+  assert.match(scripts,/Idempotency-Key/);
+  assert.match(scripts,/RETRYABLE_CONFLICT/);
+});
+
+test("OTP rate limits are shared through Mongo buckets",()=>{
+  const source=read("middleware/rate-limit.js");
+  assert.match(source,/OtpRateLimit\.findOneAndUpdate/);
+  assert.match(source,/mobile:/);
+  assert.match(read("models/OtpRateLimit.js"),/bucketKey/);
+});
 
 test("large operational screens expose bounded pagination/search controls",()=>{
   for(const file of["customers.ejs","products.ejs","suppliers.ejs","pricing.ejs","procurement.ejs","orders.ejs","delivery.ejs","returns.ejs","employees.ejs","audit.ejs","inventory.ejs"]){

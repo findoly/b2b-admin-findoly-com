@@ -1,7 +1,7 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">\n  <meta name="csrf-token" content="<%= ((typeof csrfToken !== \"undefined\") && csrfToken) ? csrfToken : \"\" %>">
   <title><%= title ? title + ' · ' : '' %><%= appName %></title>
   <link rel="icon" type="image/png" href="/images/findoly-logo.png">
   <script nonce="<%= cspNonce %>">
@@ -18,7 +18,8 @@
     })();
   </script>
   <script nonce="<%= cspNonce %>">
-    window.__crmServerUser = <%- JSON.stringify(((typeof currentAdmin !== "undefined") && currentAdmin && (currentAdmin.employeeId || currentAdmin.mobile)) || "guest").replace(/</g, "\\u003c") %>;
+    window.__crmServerAdmin = <%- JSON.stringify(((typeof currentAdmin !== "undefined") && currentAdmin) ? currentAdmin : null).replace(/</g, "\\u003c") %>;
+    window.__crmServerUser = window.__crmServerAdmin?.employeeId || window.__crmServerAdmin?.mobile || "guest";
     document.documentElement.dataset.crmUser = window.__crmServerUser;
   </script>
   <link href="/css/inter.css" rel="stylesheet" type="text/css">

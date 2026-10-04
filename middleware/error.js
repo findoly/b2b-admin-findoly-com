@@ -5,6 +5,9 @@ function notFound(req, res) {
 }
 function normalizedError(error) {
   if (Number(error?.status)) return { status:Number(error.status), code:error.code||"REQUEST_FAILED", message:error.message, expose:Number(error.status)<500||error.expose };
+  const labels=Array.isArray(error?.errorLabels)?error.errorLabels:[];
+  const retryable=Number(error?.code)===112||labels.includes("TransientTransactionError")||labels.includes("UnknownTransactionCommitResult")||/WriteConflict/i.test(String(error?.message||""));
+  if(retryable)return {status:409,code:"RETRYABLE_CONFLICT",message:"The record changed while this action was being processed. Retry the action.",expose:true};
   if (error?.name === "ValidationError" || error?.name === "CastError") return { status:400, code:"VALIDATION_ERROR", message:"Request data is invalid", expose:true };
   if (error?.code === 11000) return { status:409, code:"DUPLICATE_RESOURCE", message:"A record with the same unique value already exists", expose:true };
   return { status:500, code:error?.code||"REQUEST_FAILED", message:"Something went wrong", expose:false };
