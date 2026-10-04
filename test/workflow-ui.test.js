@@ -83,3 +83,32 @@ test("sales order creation follows customer products warehouse review with stock
   assert.match(service,/InventoryBalance\.find\(/);
   assert.match(service,/recommendedWarehouseId/);
 });
+
+
+test("sales order pages expose clear lifecycle and per-product stage tracking",()=>{
+  const form=read("views/order-form.ejs");
+  assert.match(form,/crm-order-timeline-detailed/);
+  assert.match(form,/Step '\+step\+' of '/);
+  assert.match(form,/Choose customer account/);
+
+  const detail=read("views/order-detail.ejs");
+  assert.match(detail,/Order journey/);
+  assert.match(detail,/Product journey/);
+  assert.match(detail,/lifecycleStages/);
+  assert.match(detail,/productStages:\['Ordered','Sourcing','Stock ready','Picking','Packed','Dispatch','Delivery','Delivered'\]/);
+  assert.match(detail,/productJourney\(line\)/);
+  assert.match(detail,/deliveryProgress\(line\)/);
+
+  const fulfilment=read("views/order-fulfilment.ejs");
+  assert.match(fulfilment,/Warehouse stage/);
+  assert.match(fulfilment,/warehouseStages/);
+  assert.match(fulfilment,/lineStage\(l\)/);
+
+  const sourcing=read("views/order-procurement.ejs");
+  assert.match(sourcing,/Sourcing stage/);
+  assert.match(sourcing,/sourcingStages/);
+  assert.match(sourcing,/sourceStage\(line\)/);
+
+  const css=read("public/css/app.css");
+  for(const className of["crm-order-lifecycle","crm-product-journey","crm-product-stage-track","crm-order-current-stage-box"])assert.match(css,new RegExp("\\."+className));
+});
