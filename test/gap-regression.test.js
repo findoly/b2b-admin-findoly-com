@@ -124,6 +124,7 @@ test("mutations keep a durable pending audit intent until completion",()=>{
   assert.match(middleware,/AUDIT_UNAVAILABLE/);
   assert.match(audit,/outcome:"completed"/);
   assert.match(audit,/durable mutation intent remains pending/);
+  assert.match(read("middleware/error.js"),/outcome:"failed"/);
   assert.match(routes,/r\.use\(apiAuth\);r\.use\(requireMutationAudit\)/);
 });
 
