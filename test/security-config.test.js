@@ -23,6 +23,10 @@ test("production requires HTTPS OTP service",()=>{
   withEnv({NODE_ENV:"production",AUTH_COOKIE_SECRET:"a".repeat(40),MONGODB_URI:"mongodb://example/b2b",B2B_OTP_BASE_URL:"http://api.findoly.com/otp"},()=>assert.throws(assertProductionConfig,/HTTPS/));
 });
 
+test("production rejects SKIP_DB bypass",()=>{
+  withEnv({NODE_ENV:"production",SKIP_DB:"true",AUTH_COOKIE_SECRET:"a".repeat(40),MONGODB_URI:"mongodb://example/b2b",B2B_OTP_BASE_URL:"https://api.findoly.com/otp"},()=>assert.throws(assertProductionConfig,/SKIP_DB/));
+});
+
 test("valid production configuration passes",()=>{
   withEnv({NODE_ENV:"production",AUTH_COOKIE_SECRET:"a".repeat(40),MONGODB_URI:"mongodb://example/b2b",B2B_OTP_BASE_URL:"https://api.findoly.com/otp"},()=>assert.doesNotThrow(assertProductionConfig));
 });
