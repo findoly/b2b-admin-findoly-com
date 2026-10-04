@@ -7185,6 +7185,8 @@ th .d-flex {
 }
 .crm-order-lifecycle-compact { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .crm-order-lifecycle-compact::before { left: 10%; right: 10%; }
+.crm-order-lifecycle-four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.crm-order-lifecycle-four::before { left: 12.5%; right: 12.5%; }
 .crm-order-lifecycle-stage {
   min-width: 0;
   display: flex;
