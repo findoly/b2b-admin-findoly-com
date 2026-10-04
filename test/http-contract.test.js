@@ -8,6 +8,7 @@ const assert=require("node:assert/strict");
 const request=require("supertest");
 const app=require("../app");
 const {encodeSession}=require("../middleware/auth");
+const {normalizedError}=require("../middleware/error");
 
 function authCookie(permissions=[]){
   const now=Date.now();
@@ -93,4 +94,10 @@ test("product gallery mutation requires products.media permission",async()=>{
   const id="e".repeat(32),mediaId="f".repeat(32);
   const r=await request(app).put(`/api/products/${id}/media/${mediaId}`).set("Cookie",authCookie(["products.view"])).send({isPrimary:true});
   assert.equal(r.status,403);
+});
+
+
+test("mongoose validation and duplicate errors map to client-safe HTTP statuses",()=>{
+  assert.deepEqual(normalizedError({name:"ValidationError"}),{status:400,code:"VALIDATION_ERROR",message:"Request data is invalid",expose:true});
+  assert.deepEqual(normalizedError({code:11000}),{status:409,code:"DUPLICATE_RESOURCE",message:"A record with the same unique value already exists",expose:true});
 });
