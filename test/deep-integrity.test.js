@@ -79,10 +79,12 @@ test("payment creation is retry-safe with a stable idempotency key",()=>{
   const Payment=require("../models/Payment");
   const unique=Payment.schema.indexes().find(([fields,options])=>fields.idempotencyKey===1&&options.unique===true&&options.sparse===true);
   assert.ok(unique);
+  assert.ok(Payment.schema.path("idempotencySignature"));
   const source=read("services/finance-service.js");
   assert.match(source,/IDEMPOTENCY_KEY_REQUIRED/);
   assert.match(source,/IDEMPOTENCY_KEY_REUSED/);
   assert.match(source,/Payment\.findOne\(\{idempotencyKey\}\)\.session\(session\)/);
+  assert.match(source,/idempotencySignature:intentSignature/);
   assert.match(source,/if\(error\?\.code===11000\)/);
   assert.match(read("views/finance.ejs"),/idempotencyKey:p\.idempotencyKey/);
 });
