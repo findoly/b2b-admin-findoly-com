@@ -94,6 +94,16 @@ test("protected system roles and employee self-access cannot be disabled acciden
   assert.match(source,/Role cannot be deactivated while active employees are assigned/);
 });
 
+test("role and employee administration prevents vertical privilege escalation",()=>{
+  const source=read("services/employee-service.js");
+  assert.match(source,/PRIVILEGE_ESCALATION_BLOCKED/);
+  assert.match(source,/You cannot grant permissions that you do not have/);
+  assert.match(source,/Only a Super Admin can assign this role/);
+  assert.match(source,/Only a Super Admin can modify the Super Admin role/);
+  assert.match(source,/assertCanAssignRole\(grantorRole,role\)/);
+  assert.match(source,/assertCanGrantPermissions\(grantorRole,requested\)/);
+});
+
 test("primary operational views do not use native prompt or confirm dialogs",()=>{
   for(const file of["views/orders.ejs","views/procurement.ejs","views/products.ejs","views/returns.ejs","views/delivery.ejs"]){
     assert.doesNotMatch(read(file),/\b(?:prompt|confirm)\s*\(/,file);
