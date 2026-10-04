@@ -97,14 +97,30 @@ test("shared head partial compiles with and without optional server locals",()=>
 
 
 test("Alpine expressions stay within CSP evaluator syntax",()=>{
+  const attributePattern=/(?:^|\\s)(x-[\\w:.@-]+|@[\\w.:-]+|:[\\w.-]+)\\s*=\\s*(?:"([^"]*)"|'([^']*)')/g;
   for(const file of walk(path.join(root,"views")).filter(x=>x.endsWith(".ejs"))){
     const source=fs.readFileSync(file,"utf8");
     assert.doesNotMatch(source,/\\bx-html\\s*=/,path.relative(root,file));
-    for(const match of source.matchAll(/\\b(?:x-[\\w:.@-]+|@[\\w.:-]+|:[\\w.-]+)=(?:"([^"]*)"|'([^']*)')/g)){
-      const expression=match[1]??match[2]??"";
-      assert.doesNotMatch(expression,/=>|\\.{3}|\\x60|\\b(?:window|document|JSON|parseInt|parseFloat)\\b/,path.relative(root,file));
+    for(const match of source.matchAll(attributePattern)){
+      const expression=match[2]??match[3]??"";
+      assert.doesNotMatch(expression,/\\?\\.|\\?\\?|=>|\\.{3}|\x60|\\b(?:window|document|JSON|parseInt|parseFloat)\\b/,path.relative(root,file)+" "+match[1]);
     }
   }
+});
+
+test("all EJS templates compile before deployment",()=>{
+  for(const file of walk(path.join(root,"views")).filter(x=>x.endsWith(".ejs"))){
+    const source=fs.readFileSync(file,"utf8");
+    assert.doesNotThrow(()=>ejs.compile(source,{filename:file}),path.relative(root,file));
+  }
+});
+
+test("B2B runtime does not request missing legacy UI scripts",()=>{
+  const runtime=fs.readFileSync(path.join(root,"public/js/crm-ui-runtime.js"),"utf8");
+  const head=fs.readFileSync(path.join(root,"views/partials/head.ejs"),"utf8");
+  assert.doesNotMatch(runtime,/crm-context-help|lead-validation-ui/);
+  assert.match(head,/app\.css\?v=20261005-b2b-csp-ui-1/);
+  assert.match(head,/crm-ui-runtime\.js\?v=20261005-b2b-csp-ui-1/);
 });
 
 test("delivery workflow uses dedicated connected pages",()=>{
@@ -131,5 +147,5 @@ test("product management uses dedicated HTML and gallery pages",()=>{
   assert.match(form,/Import HTML/);
   assert.match(form,/descriptionHtml/);
   assert.match(detail,/Photo gallery/);
-  assert.match(detail,/setSafeHtml\(\$el, product\?\.descriptionHtml\)/);
+  assert.match(detail,/setSafeHtml\(\$el, crmValue\(product,'descriptionHtml',''\)\)/);
 });

@@ -92,15 +92,22 @@
   function bodyData(name,fallback=''){return document.body?.dataset?.[name]||fallback;}
   function setSafeHtml(element,html){if(element)element.innerHTML=String(html||'');}
   function syncMobileDrawer(open){document.documentElement.classList.toggle('crm-mobile-drawer-open',Boolean(open));document.body.classList.toggle('crm-mobile-drawer-open',Boolean(open));}
+  function crmValue(value,path,fallback=''){let current=value;for(const key of String(path||'').split('.')){if(current===null||current===undefined)return fallback;current=current[key]}return current===null||current===undefined?fallback:current;}
+  function crmList(value,path){const result=path?crmValue(value,path,[]):value;return Array.isArray(result)?result:[];}
+  function eventFiles(event){return Array.from(event&&event.target&&event.target.files?event.target.files:[]);}
+  function eventFirstFile(event){const files=eventFiles(event);return files.length?files[0]:null;}
 
   const CRM_SIDEBAR_COLLAPSED_KEY='leadops.crm.sidebar.collapsed.v1';
   function readSidebarCollapsed(){try{return localStorage.getItem(CRM_SIDEBAR_COLLAPSED_KEY)==='1'}catch(_){return false}}
   function syncSidebarDocumentState(collapsed){document.documentElement.classList.toggle('crm-sidebar-saved-collapsed',Boolean(collapsed));}
   function crmShell(){return{
-    admin:window.__crmServerAdmin||{},shellError:'',sidebarOpen:false,sidebarCollapsed:readSidebarCollapsed(),
-    Number,String,Boolean,Math,Date,Array,Object,money,safeDate,formatDate,formatDateOnly,shortDate,humanize,statusClass,showCrmToast,joinTruthy,reverseCopy,moneyFromRupees,bodyData,setSafeHtml,syncMobileDrawer,
+    admin:window.__crmServerAdmin||{},shellError:'',sidebarOpen:false,sidebarCollapsed:readSidebarCollapsed(),mobileViewport:false,
+    Number,String,Boolean,Math,Date,Array,Object,money,safeDate,formatDate,formatDateOnly,shortDate,humanize,statusClass,showCrmToast,joinTruthy,reverseCopy,moneyFromRupees,bodyData,setSafeHtml,syncMobileDrawer,crmValue,crmList,eventFiles,eventFirstFile,
+    updateMobileViewport(){this.mobileViewport=window.innerWidth<992;},
     async initShell(){
       syncSidebarDocumentState(this.sidebarCollapsed);
+      this.updateMobileViewport();
+      window.addEventListener('resize',()=>this.updateMobileViewport(),{passive:true});
       if(this.admin?.employeeId)return;
       try{this.admin=(await apiFetch('/api/auth/me')).data||{};}catch(e){this.shellError=e.message;}
     },

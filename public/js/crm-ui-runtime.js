@@ -1,26 +1,6 @@
 (function () {
   'use strict';
 
-  function loadContextHelpUi() {
-    if (document.querySelector('script[data-crm-context-help]')) return;
-    const script = document.createElement('script');
-    script.src = '/js/crm-context-help.js?v=20260904-1';
-    script.async = false;
-    script.dataset.crmContextHelp = 'true';
-    document.head.appendChild(script);
-  }
-
-  function loadLeadValidationUi() {
-    const path = window.location.pathname.replace(/\/$/, '');
-    if (!/^\/(?:enquiries|requirements)\/[^/]+$/.test(path)) return;
-    if (document.querySelector('script[data-lead-validation-ui]')) return;
-    const script = document.createElement('script');
-    script.src = '/js/lead-validation-ui.js';
-    script.async = false;
-    script.dataset.leadValidationUi = 'true';
-    document.head.appendChild(script);
-  }
-
   function clearRuntimeError() {
     document.getElementById('crm-runtime-error')?.remove();
   }
@@ -46,17 +26,11 @@
     document.dispatchEvent(new CustomEvent('crm:alpine-unavailable'));
   }
 
-  loadContextHelpUi();
-  loadLeadValidationUi();
-
   if (window.Alpine) {
     clearRuntimeError();
     return;
   }
 
-  if (document.readyState === 'complete') {
-    showRuntimeError();
-  } else {
-    window.addEventListener('load', showRuntimeError, { once: true });
-  }
+  if (document.readyState === 'complete') showRuntimeError();
+  else window.addEventListener('load', showRuntimeError, { once: true });
 })();
