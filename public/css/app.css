@@ -7151,3 +7151,128 @@ th .d-flex {
   .crm-order-warehouse-summary { align-items: flex-start; flex-direction: column; }
   .crm-order-warehouse-summary .text-end { text-align: left !important; }
 }
+
+
+/* Sales order operational journey and product stage tracking */
+.crm-order-wizard-heading { align-items: center; }
+.crm-order-step-count { min-width: 130px; display: flex; flex-direction: column; align-items: flex-end; gap: .12rem; text-align: right; }
+.crm-order-step-count strong { color: var(--crm-user-accent, var(--crm-shell-blue)); font-size: .78rem; }
+.crm-order-step-count span { color: var(--crm-user-muted-text, var(--crm-shell-muted)); font-size: .68rem; }
+.crm-order-timeline-detailed .crm-order-timeline-copy { gap: .18rem; }
+.crm-order-timeline-detailed .crm-order-timeline-copy strong { font-size: .82rem; }
+.crm-order-timeline-detailed .crm-order-timeline-copy small { min-height: 1.95rem; max-width: 12rem; line-height: 1.35; }
+.crm-order-timeline-copy em { color: #94a3b8; font-size: .61rem; font-style: normal; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.crm-order-timeline-step.is-active .crm-order-timeline-copy em { color: var(--crm-user-accent, var(--crm-shell-blue)); }
+.crm-order-timeline-step.is-complete .crm-order-timeline-copy em { color: #15803d; }
+
+.crm-order-current-stage-box { min-width: 150px; display: flex; flex-direction: column; align-items: flex-end; text-align: right; }
+.crm-order-current-stage-box span { color: var(--crm-user-muted-text, var(--crm-shell-muted)); font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.crm-order-current-stage-box strong { margin-top: .2rem; color: var(--crm-user-accent, var(--crm-shell-blue)); font-size: .88rem; }
+.crm-order-lifecycle {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  position: relative;
+  gap: 0;
+}
+.crm-order-lifecycle::before {
+  content: "";
+  position: absolute;
+  top: 20px;
+  left: 6.25%;
+  right: 6.25%;
+  height: 2px;
+  background: var(--crm-user-card-border, var(--crm-shell-border));
+}
+.crm-order-lifecycle-compact { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.crm-order-lifecycle-compact::before { left: 10%; right: 10%; }
+.crm-order-lifecycle-four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.crm-order-lifecycle-four::before { left: 12.5%; right: 12.5%; }
+.crm-order-lifecycle-stage {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .5rem;
+  position: relative;
+  z-index: 1;
+  padding: 0 .35rem;
+  text-align: center;
+}
+.crm-order-lifecycle-node {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--crm-user-card-border, var(--crm-shell-border));
+  border-radius: 50%;
+  background: var(--crm-user-card-bg, #fff);
+  color: var(--crm-user-muted-text, var(--crm-shell-muted));
+  font-size: .74rem;
+  font-weight: 800;
+}
+.crm-order-lifecycle-stage > div { min-width: 0; display: flex; flex-direction: column; gap: .12rem; }
+.crm-order-lifecycle-stage strong { color: var(--crm-user-main-text, var(--crm-shell-text)); font-size: .7rem; line-height: 1.25; }
+.crm-order-lifecycle-stage small { color: var(--crm-user-muted-text, var(--crm-shell-muted)); font-size: .61rem; line-height: 1.3; }
+.crm-order-lifecycle-stage.is-complete .crm-order-lifecycle-node,
+.crm-order-lifecycle-stage.is-finished .crm-order-lifecycle-node { border-color: #16a34a; background: #16a34a; color: #fff; }
+.crm-order-lifecycle-stage.is-complete strong,
+.crm-order-lifecycle-stage.is-finished strong { color: #15803d; }
+.crm-order-lifecycle-stage.is-active .crm-order-lifecycle-node { border-color: var(--crm-user-accent, var(--crm-shell-blue)); background: var(--crm-user-accent, var(--crm-shell-blue)); color: #fff; box-shadow: 0 0 0 5px var(--crm-user-accent-soft, #dbeafe); }
+.crm-order-lifecycle-stage.is-active strong { color: var(--crm-user-accent, var(--crm-shell-blue)); }
+.crm-order-lifecycle-stage.is-attention .crm-order-lifecycle-node,
+.crm-order-lifecycle-stage.is-stopped .crm-order-lifecycle-node { border-color: #dc2626; background: #dc2626; color: #fff; }
+.crm-order-lifecycle-stage.is-attention strong,
+.crm-order-lifecycle-stage.is-stopped strong { color: #b91c1c; }
+
+.crm-product-journey-list { display: grid; gap: .85rem; }
+.crm-product-journey { padding: 1rem; border: 1px solid var(--crm-user-card-border, var(--crm-shell-border)); border-radius: 12px; background: color-mix(in srgb, var(--crm-user-card-bg, #fff) 98%, var(--crm-user-page-bg, #f8fafc)); }
+.crm-product-journey-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: .9rem; }
+.crm-product-stage-badge { display: inline-flex; align-items: center; min-height: 26px; padding: .2rem .55rem; border-radius: 999px; background: #eef2ff; color: #3730a3; font-size: .67rem; font-weight: 750; white-space: nowrap; }
+.crm-product-stage-badge.is-success { background: #dcfce7; color: #166534; }
+.crm-product-stage-badge.is-warning { background: #fef3c7; color: #92400e; }
+.crm-product-stage-badge.is-attention { background: #fee2e2; color: #991b1b; }
+.crm-product-stage-badge.is-active { background: #dbeafe; color: #1d4ed8; }
+.crm-product-stage-badge.is-muted { background: #f1f5f9; color: #64748b; }
+.crm-product-stage-track { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); position: relative; gap: 0; }
+.crm-product-stage-track::before { content: ""; position: absolute; top: 7px; left: 6.25%; right: 6.25%; height: 2px; background: var(--crm-user-card-border, var(--crm-shell-border)); }
+.crm-product-stage { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: .32rem; position: relative; z-index: 1; text-align: center; }
+.crm-product-stage-dot { width: 16px; height: 16px; border: 2px solid var(--crm-user-card-border, var(--crm-shell-border)); border-radius: 50%; background: var(--crm-user-card-bg, #fff); }
+.crm-product-stage small { color: var(--crm-user-muted-text, var(--crm-shell-muted)); font-size: .58rem; line-height: 1.25; }
+.crm-product-stage.is-done .crm-product-stage-dot { border-color: #16a34a; background: #16a34a; }
+.crm-product-stage.is-done small { color: #15803d; }
+.crm-product-stage.is-current .crm-product-stage-dot { border-color: var(--crm-user-accent, var(--crm-shell-blue)); background: var(--crm-user-accent, var(--crm-shell-blue)); box-shadow: 0 0 0 3px var(--crm-user-accent-soft, #dbeafe); }
+.crm-product-stage.is-current small { color: var(--crm-user-accent, var(--crm-shell-blue)); font-weight: 750; }
+.crm-product-stage.is-current.is-muted .crm-product-stage-dot { border-color: #94a3b8; background: #94a3b8; box-shadow: none; }
+.crm-product-journey-meta { display: flex; flex-wrap: wrap; gap: .45rem .9rem; margin-top: .85rem; padding-top: .75rem; border-top: 1px dashed var(--crm-user-card-border, var(--crm-shell-border)); color: var(--crm-user-muted-text, var(--crm-shell-muted)); font-size: .65rem; }
+.crm-product-journey-meta b { color: var(--crm-user-main-text, var(--crm-shell-text)); }
+
+.crm-product-source-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; }
+.crm-product-source-summary > div { display: flex; flex-direction: column; gap: .2rem; padding: .7rem; border: 1px solid var(--crm-user-card-border, var(--crm-shell-border)); border-radius: 10px; background: var(--crm-user-page-bg, #f8fafc); }
+.crm-product-source-summary span { color: var(--crm-user-muted-text, var(--crm-shell-muted)); font-size: .64rem; }
+.crm-product-source-summary strong { color: var(--crm-user-main-text, var(--crm-shell-text)); font-size: 1rem; }
+
+@media (max-width: 991.98px) {
+  .crm-order-lifecycle,
+  .crm-order-lifecycle-compact { grid-template-columns: 1fr; gap: .35rem; }
+  .crm-order-lifecycle::before,
+  .crm-order-lifecycle-compact::before { top: 20px; bottom: 20px; left: 19px; right: auto; width: 2px; height: auto; }
+  .crm-order-lifecycle-stage { min-height: 46px; flex-direction: row; align-items: center; justify-content: flex-start; gap: .7rem; padding: .1rem 0; text-align: left; }
+  .crm-order-lifecycle-stage > div { align-items: flex-start; }
+  .crm-order-lifecycle-node { width: 40px; height: 40px; flex: 0 0 40px; }
+  .crm-order-lifecycle-stage strong { font-size: .76rem; }
+  .crm-order-lifecycle-stage small { font-size: .65rem; }
+  .crm-product-stage-track { grid-template-columns: 1fr; gap: .25rem; padding-left: .15rem; }
+  .crm-product-stage-track::before { top: 8px; bottom: 8px; left: 7px; right: auto; width: 2px; height: auto; }
+  .crm-product-stage { min-height: 28px; flex-direction: row; justify-content: flex-start; gap: .55rem; text-align: left; }
+  .crm-product-stage-dot { flex: 0 0 16px; }
+  .crm-product-stage small { font-size: .64rem; }
+}
+@media (max-width: 767.98px) {
+  .crm-order-wizard-heading,
+  .crm-product-journey-head { align-items: flex-start; flex-direction: column; }
+  .crm-order-step-count,
+  .crm-order-current-stage-box { min-width: 0; align-items: flex-start; text-align: left; }
+  .crm-order-timeline-detailed .crm-order-timeline-copy small { min-height: 0; max-width: none; }
+  .crm-product-source-summary { grid-template-columns: 1fr; }
+}

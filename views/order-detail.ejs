@@ -2,21 +2,145 @@
 <html lang="en" dir="ltr"><%- include('partials/head') %>
 <body x-data="crmShell()" x-init="initShell()"><%- include('partials/navbar') %>
 <div class="page-content"><%- include('partials/sidebar') %><div class="content-wrapper"><div class="content-inner">
-<div class="page-header page-header-light crm-page-header"><div class="page-header-content crm-page-heading"><div><div class="crm-page-eyebrow">Connected distribution record</div><h1 class="page-title mb-1" x-data x-text="bodyData('orderTitle','Sales order')">Sales order</h1><p class="crm-page-subtitle mb-0">Customer, product demand, supplier sourcing, warehouse fulfilment and delivery in one operational view.</p></div><div class="d-flex gap-2"><a class="btn btn-light" href="/orders">Back</a></div></div></div>
-<div class="content" x-data="orderDetailPage()" x-init="load()"><div x-show="shellError" x-cloak class="alert alert-danger" x-text="shellError"></div><div x-show="error" x-cloak class="alert alert-danger" x-text="error"></div>
+<div class="page-header page-header-light crm-page-header"><div class="page-header-content crm-page-heading"><div><div class="crm-page-eyebrow">Connected distribution record</div><h1 class="page-title mb-1" x-data x-text="bodyData('orderTitle','Sales order')">Sales order</h1><p class="crm-page-subtitle mb-0">Track the order and every product from customer demand through sourcing, warehouse fulfilment and delivery.</p></div><a class="btn btn-light" href="/orders">Back</a></div></div>
+<div class="content" x-data="orderDetailPage()" x-init="load()">
+<div x-show="shellError" x-cloak class="alert alert-danger" x-text="shellError"></div><div x-show="error" x-cloak class="alert alert-danger" x-text="error"></div>
 <template x-if="loading"><div class="card crm-data-card"><div class="card-body"><div class="crm-table-loading"><span></span><span></span><span></span></div></div></div></template>
 <div x-show="order" x-cloak>
+
 <div class="d-flex flex-wrap gap-2 mb-4"><% if (can('procurement.create')) { %><a x-show="['procurement_required','procurement_in_progress'].includes(order?.status)" class="btn btn-outline-primary" :href="'/orders/'+orderId+'/procurement'">Source shortage</a><% } %><% if (can('orders.fulfil')) { %><a x-show="['procurement_required','procurement_in_progress','stock_ready','picking','packed','ready_for_dispatch'].includes(order?.status)" class="btn btn-outline-primary" :href="'/orders/'+orderId+'/fulfilment'">Warehouse fulfilment</a><% } %><% if (can('delivery.assign')) { %><a x-show="['packed','ready_for_dispatch'].includes(order?.status)" class="btn btn-primary" :href="'/delivery/assign?salesOrderId='+orderId">Assign delivery</a><% } %></div>
+
+<div class="card crm-data-card mb-4 crm-order-journey-card">
+  <div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Order journey</h2><p class="text-muted mb-0">One timeline shows exactly where the full sales order is now.</p></div><div class="crm-order-current-stage-box"><span>Current stage</span><strong x-text="currentStageLabel()"></strong></div></div>
+  <div class="card-body">
+    <div class="crm-order-lifecycle" role="list" aria-label="Order fulfilment journey">
+      <template x-for="(stage,index) in lifecycleStages" :key="stage.label">
+        <div class="crm-order-lifecycle-stage" role="listitem" :class="lifecycleStageClass(index)">
+          <span class="crm-order-lifecycle-node"><span x-show="index>=lifecycleIndex()" x-text="index+1"></span><span x-show="index<lifecycleIndex()">✓</span></span>
+          <div><strong x-text="stage.label"></strong><small x-text="stage.note"></small></div>
+        </div>
+      </template>
+    </div>
+    <div class="alert alert-warning mt-3 mb-0" x-show="['procurement_required','procurement_in_progress'].includes(order?.status)">Some product demand still depends on sourcing or supplier receipts before warehouse fulfilment can continue.</div>
+    <div class="alert alert-danger mt-3 mb-0" x-show="order?.status==='delivery_failed'">Delivery needs attention before the order can continue.</div>
+    <div class="alert alert-secondary mt-3 mb-0" x-show="order?.status==='cancelled'">This order is cancelled and the operational journey is closed.</div>
+  </div>
+</div>
+
 <div class="row g-4 mb-4"><div class="col-lg-4"><div class="card crm-data-card h-100"><div class="card-body"><div class="text-muted fs-sm">Sales order</div><h2 class="h5 mb-2" x-text="order?.orderNumber"></h2><span class="crm-status" :class="statusClass(order?.status)" x-text="humanize(order?.status)"></span><div class="mt-3 text-muted fs-sm">Approval</div><span class="crm-status" :class="statusClass(order?.approvalStatus)" x-text="humanize(order?.approvalStatus)"></span></div></div></div><div class="col-lg-4"><div class="card crm-data-card h-100"><div class="card-body"><div class="text-muted fs-sm">Customer</div><h2 class="h5 mb-1" x-text="order?.customerSnapshot?.businessName||'—'"></h2><div x-text="order?.customerSnapshot?.mobile||''"></div><div class="text-muted fs-sm mt-3">Delivery address</div><div x-text="addressText(order?.deliveryAddressSnapshot)"></div></div></div></div><div class="col-lg-4"><div class="card crm-data-card h-100"><div class="card-body"><div class="text-muted fs-sm">Fulfilment warehouse</div><h2 class="h5 mb-1" x-text="order?.warehouseSnapshot?.name||'—'"></h2><div x-text="order?.warehouseSnapshot?.code||''"></div><div class="text-muted fs-sm mt-3">Order total</div><strong class="fs-5" x-text="money(order?.totalPaise)"></strong></div></div></div></div>
-<div class="card crm-data-card mb-4"><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Product demand & source mapping</h2><p class="text-muted mb-0">Each product can be supplied by one or more supplier allocations while the sales order remains the customer-facing demand record.</p></div></div><div class="table-responsive"><table class="table crm-table align-middle mb-0"><thead><tr><th>Product</th><th class="text-end">Ordered</th><th class="text-end">Warehouse reserved</th><th class="text-end">Procurement required</th><th class="text-end">Allocated</th><th>Supplier sources</th></tr></thead><tbody><template x-for="line in order?.lines||[]" :key="line.salesOrderLineId"><tr><td><a class="crm-record-title" :href="'/products/'+line.productId" x-text="line.productName"></a><div class="text-muted fs-sm" x-text="line.sku"></div></td><td class="text-end" x-text="line.quantity"></td><td class="text-end" x-text="line.stockReservedQty||0"></td><td class="text-end" x-text="line.procurementRequiredQty||0"></td><td class="text-end" x-text="allocatedQty(line.salesOrderLineId)"></td><td><template x-if="lineAllocations(line.salesOrderLineId).length"><div><template x-for="a in lineAllocations(line.salesOrderLineId)" :key="a.procurementAllocationId"><div class="mb-2"><strong x-text="a.supplierSnapshot?.businessName||'Supplier'"></strong><div class="text-muted fs-sm"><span x-text="a.quantity+' units'"></span><span> · </span><span x-text="money(a.purchasePricePaise)+' buy price'"></span><span> · </span><span x-text="humanize(a.status)"></span></div></div></template></div></template><span x-show="!lineAllocations(line.salesOrderLineId).length" class="text-muted">Warehouse stock / not yet sourced</span></td></tr></template></tbody></table></div></div>
-<div class="row g-4 mb-4"><div class="col-lg-6"><div class="card crm-data-card h-100"><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Linked purchase orders</h2><p class="text-muted mb-0">Purchase orders generated from this order's supplier allocations.</p></div></div><div class="card-body"><% if (can('procurement.view')) { %><template x-for="po in purchaseOrders" :key="po.purchaseOrderId"><div class="border rounded p-3 mb-2 d-flex justify-content-between gap-3"><div><a class="crm-record-title" :href="'/procurement/'+po.purchaseOrderId" x-text="po.poNumber"></a><div class="text-muted fs-sm" x-text="po.supplierName"></div></div><span class="crm-status" :class="statusClass(po.status)" x-text="humanize(po.status)"></span></div></template><div x-show="!purchaseOrders.length" class="text-muted">No linked purchase order yet.</div><% } else { %><div class="text-muted">Procurement-view permission is required to open purchase orders.</div><% } %></div></div></div><div class="col-lg-6"><div class="card crm-data-card h-100"><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Delivery mapping</h2><p class="text-muted mb-0">Delivery always inherits this sales order's warehouse and product lines.</p></div></div><div class="card-body"><% if (can('delivery.view')) { %><template x-for="d in deliveries" :key="d.deliveryAssignmentId"><div class="border rounded p-3 mb-2 d-flex justify-content-between gap-3"><div><a class="crm-record-title" :href="'/delivery/'+d.deliveryAssignmentId" x-text="d.driverName||d.deliveryProviderName||humanize(d.deliveryType)"></a><div class="text-muted fs-sm" x-text="(d.warehouseSnapshot?.name||order?.warehouseSnapshot?.name||'Warehouse')+' · '+(d.lines||[]).length+' SKU(s)'"></div></div><span class="crm-status" :class="statusClass(d.status)" x-text="humanize(d.status)"></span></div></template><div x-show="!deliveries.length" class="text-muted">No delivery assignment yet.</div><% } else { %><div class="text-muted">Delivery-view permission is required to open delivery assignments.</div><% } %></div></div></div></div>
-<div class="card crm-data-card"><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Order actions</h2><p class="text-muted mb-0">State-changing actions remain permission controlled and audited.</p></div></div><div class="card-body"><div class="d-flex flex-wrap gap-2"><% if (can('orders.approve')) { %><button x-show="order?.approvalStatus==='pending'" class="btn btn-outline-primary" @click="approve()">Approve order</button><% } %><% if (can('orders.edit')) { %><button x-show="['created','draft'].includes(order?.status) && order?.approvalStatus!=='pending'" class="btn btn-primary" @click="confirmOrder()">Confirm & reserve stock</button><% } %><% if (can('finance.invoice')) { %><button x-show="!['draft','created','cancelled'].includes(order?.status)" class="btn btn-light" @click="issueInvoice()">Issue invoice</button><% } %><% if (can('orders.edit')) { %><button x-show="cancellable()" class="btn btn-outline-danger" @click="showCancel=!showCancel">Cancel order</button><% } %></div><% if (can('orders.edit')) { %><div x-show="showCancel" x-cloak class="border rounded p-3 mt-3"><label class="form-label">Cancellation reason</label><textarea class="form-control" rows="3" maxlength="1000" x-model="cancelReason"></textarea><div class="text-end mt-2"><button class="btn btn-danger" @click="cancelOrder()" :disabled="!cancelReason.trim()">Cancel and release stock</button></div></div><% } %></div></div>
+
+<div class="card crm-data-card mb-4">
+  <div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Product journey</h2><p class="text-muted mb-0">Every product line gets its own stage tracker so sourcing, warehouse and delivery progress are visible at a glance.</p></div></div>
+  <div class="card-body crm-product-journey-list">
+    <template x-for="line in order?.lines||[]" :key="line.salesOrderLineId">
+      <div class="crm-product-journey">
+        <div class="crm-product-journey-head">
+          <div><a class="crm-record-title" :href="'/products/'+line.productId" x-text="line.productName"></a><div class="text-muted fs-sm" x-text="line.sku+' · '+line.quantity+' ordered'"></div></div>
+          <span class="crm-product-stage-badge" :class="productJourney(line).tone" x-text="productJourney(line).label"></span>
+        </div>
+        <div class="crm-product-stage-track" role="list" :aria-label="line.productName+' progress'">
+          <template x-for="(stage,index) in productStages" :key="stage">
+            <div class="crm-product-stage" role="listitem" :class="productStageClass(line,index)">
+              <span class="crm-product-stage-dot"></span><small x-text="stage"></small>
+            </div>
+          </template>
+        </div>
+        <div class="crm-product-journey-meta">
+          <span><b x-text="line.stockReservedQty||0"></b> reserved</span>
+          <span><b x-text="line.procurementRequiredQty||0"></b> procurement need</span>
+          <span><b x-text="allocatedQty(line.salesOrderLineId)"></b> allocated</span>
+          <span><b x-text="deliveryProgress(line).delivered"></b> delivered</span>
+          <span><b x-text="deliveryProgress(line).returned"></b> returned</span>
+        </div>
+      </div>
+    </template>
+  </div>
+</div>
+
+<div class="card crm-data-card mb-4"><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Product demand & source mapping</h2><p class="text-muted mb-0">Supplier allocations stay connected to each sales-order line while the warehouse remains the fulfilment destination.</p></div></div><div class="table-responsive"><table class="table crm-table align-middle mb-0"><thead><tr><th>Product</th><th class="text-end">Ordered</th><th class="text-end">Warehouse reserved</th><th class="text-end">Procurement required</th><th class="text-end">Allocated</th><th>Supplier sources</th></tr></thead><tbody><template x-for="line in order?.lines||[]" :key="line.salesOrderLineId"><tr><td><a class="crm-record-title" :href="'/products/'+line.productId" x-text="line.productName"></a><div class="text-muted fs-sm" x-text="line.sku"></div></td><td class="text-end" x-text="line.quantity"></td><td class="text-end" x-text="line.stockReservedQty||0"></td><td class="text-end" x-text="line.procurementRequiredQty||0"></td><td class="text-end" x-text="allocatedQty(line.salesOrderLineId)"></td><td><template x-if="lineAllocations(line.salesOrderLineId).length"><div><template x-for="a in lineAllocations(line.salesOrderLineId)" :key="a.procurementAllocationId"><div class="mb-2"><strong x-text="a.supplierSnapshot?.businessName||'Supplier'"></strong><div class="text-muted fs-sm"><span x-text="a.quantity+' units'"></span><span> · </span><span x-text="money(a.purchasePricePaise)+' buy price'"></span><span> · </span><span x-text="humanize(a.status)"></span></div></div></template></div></template><span x-show="!lineAllocations(line.salesOrderLineId).length" class="text-muted">Warehouse stock / not yet sourced</span></td></tr></template></tbody></table></div></div>
+
+<div class="row g-4 mb-4"><div class="col-lg-6"><div class="card crm-data-card h-100"><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Linked purchase orders</h2><p class="text-muted mb-0">Purchase orders generated from this order's supplier allocations.</p></div></div><div class="card-body"><% if (can('procurement.view')) { %><template x-for="po in purchaseOrders" :key="po.purchaseOrderId"><div class="border rounded p-3 mb-2 d-flex justify-content-between gap-3"><div><a class="crm-record-title" :href="'/procurement/'+po.purchaseOrderId" x-text="po.poNumber"></a><div class="text-muted fs-sm" x-text="po.supplierName"></div></div><span class="crm-status" :class="statusClass(po.status)" x-text="humanize(po.status)"></span></div></template><div x-show="!purchaseOrders.length" class="text-muted">No linked purchase order yet.</div><% } else { %><div class="text-muted">Procurement-view permission is required to open purchase orders.</div><% } %></div></div></div><div class="col-lg-6"><div class="card crm-data-card h-100"><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Delivery mapping</h2><p class="text-muted mb-0">Delivery inherits this sales order's warehouse and product lines.</p></div></div><div class="card-body"><% if (can('delivery.view')) { %><template x-for="d in deliveries" :key="d.deliveryAssignmentId"><div class="border rounded p-3 mb-2 d-flex justify-content-between gap-3"><div><a class="crm-record-title" :href="'/delivery/'+d.deliveryAssignmentId" x-text="d.driverName||d.deliveryProviderName||humanize(d.deliveryType)"></a><div class="text-muted fs-sm" x-text="(d.warehouseSnapshot?.name||order?.warehouseSnapshot?.name||'Warehouse')+' · '+(d.lines||[]).length+' SKU(s)'"></div></div><span class="crm-status" :class="statusClass(d.status)" x-text="humanize(d.status)"></span></div></template><div x-show="!deliveries.length" class="text-muted">No delivery assignment yet.</div><% } else { %><div class="text-muted">Delivery-view permission is required to open delivery assignments.</div><% } %></div></div></div></div>
+
+<div class="card crm-data-card"><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Order actions</h2><p class="text-muted mb-0">Only valid, permission-controlled state transitions are shown.</p></div></div><div class="card-body"><div class="d-flex flex-wrap gap-2"><% if (can('orders.approve')) { %><button x-show="order?.approvalStatus==='pending'" class="btn btn-outline-primary" @click="approve()">Approve order</button><% } %><% if (can('orders.edit')) { %><button x-show="['created','draft'].includes(order?.status) && order?.approvalStatus!=='pending'" class="btn btn-primary" @click="confirmOrder()">Confirm & reserve stock</button><% } %><% if (can('finance.invoice')) { %><button x-show="!['draft','created','cancelled'].includes(order?.status)" class="btn btn-light" @click="issueInvoice()">Issue invoice</button><% } %><% if (can('orders.edit')) { %><button x-show="cancellable()" class="btn btn-outline-danger" @click="showCancel=!showCancel">Cancel order</button><% } %></div><% if (can('orders.edit')) { %><div x-show="showCancel" x-cloak class="border rounded p-3 mt-3"><label class="form-label">Cancellation reason</label><textarea class="form-control" rows="3" maxlength="1000" x-model="cancelReason"></textarea><div class="text-end mt-2"><button class="btn btn-danger" @click="cancelOrder()" :disabled="!cancelReason.trim()">Cancel and release stock</button></div></div><% } %></div></div>
+
 </div></div><%- include('partials/footer') %></div></div></div>
 <script nonce="<%= cspNonce %>">
 function orderDetailPage(){return{
 orderId:location.pathname.split('/')[2]||'',order:null,deliveries:[],purchaseOrders:[],loading:true,error:'',showCancel:false,cancelReason:'',
+lifecycleStages:[
+  {label:'Order created',note:'Customer demand recorded'},
+  {label:'Stock & sourcing',note:'Reserve stock or source shortage'},
+  {label:'Stock ready',note:'All demand available'},
+  {label:'Picking',note:'Warehouse picking'},
+  {label:'Packed',note:'Products packed'},
+  {label:'Dispatch ready',note:'Ready to leave warehouse'},
+  {label:'Delivery',note:'Assigned / out for delivery'},
+  {label:'Delivered',note:'Customer received order'}
+],
+productStages:['Ordered','Sourcing','Stock ready','Picking','Packed','Dispatch','Delivery','Delivered'],
 async load(){try{const order=(await apiFetch('/api/orders/'+this.orderId)).data;this.order=order;document.body.dataset.orderTitle=order.orderNumber;<% if (can('delivery.view')) { %>this.deliveries=(await apiFetch('/api/delivery?salesOrderId='+encodeURIComponent(this.orderId)+'&limit=100')).data.items||[];<% } %><% if (can('procurement.view')) { %>const ids=[...new Set((order.procurementAllocations||[]).map(x=>x.purchaseOrderId).filter(Boolean))];this.purchaseOrders=(await Promise.all(ids.map(async id=>{try{return(await apiFetch('/api/procurement/'+id)).data}catch(_){return null}}))).filter(Boolean);<% } %>}catch(e){this.error=e.message}finally{this.loading=false}},
-lineAllocations(id){return(this.order?.procurementAllocations||[]).filter(x=>x.salesOrderLineId===id&&x.status!=='cancelled')},allocatedQty(id){return this.lineAllocations(id).reduce((s,x)=>s+Number(x.quantity||0),0)},addressText(a){return[a?.line1,a?.line2,a?.city,a?.state,a?.pincode].filter(Boolean).join(', ')||'—'},cancellable(){return['draft','created','procurement_required','procurement_in_progress','stock_ready','picking','packed','ready_for_dispatch'].includes(this.order?.status)},
-async approve(){try{this.order=(await apiFetch('/api/orders/'+this.orderId+'/approve',{method:'POST',body:'{}'})).data;showCrmToast('Order approved')}catch(e){this.error=e.message}},async confirmOrder(){try{this.order=(await apiFetch('/api/orders/'+this.orderId+'/confirm',{method:'POST',body:'{}'})).data;showCrmToast(this.order.status==='stock_ready'?'Stock reserved; order is ready':'Order confirmed; procurement is required');await this.load()}catch(e){this.error=e.message;showCrmToast(e.message,'error')}},async issueInvoice(){try{const x=(await apiFetch('/api/finance/invoices/order/'+this.orderId,{method:'POST',body:'{}'})).data;showCrmToast('Invoice issued');location.href='/invoices/'+x.invoiceId}catch(e){this.error=e.message;showCrmToast(e.message,'error')}},async cancelOrder(){if(!this.cancelReason.trim())return;try{this.order=(await apiFetch('/api/orders/'+this.orderId+'/cancel',{method:'POST',body:JSON.stringify({reason:this.cancelReason.trim()})})).data;this.showCancel=false;showCrmToast('Order cancelled and stock released')}catch(e){this.error=e.message;showCrmToast(e.message,'error')}}
+lineAllocations(id){return(this.order?.procurementAllocations||[]).filter(x=>x.salesOrderLineId===id&&x.status!=='cancelled')},
+allocatedQty(id){return this.lineAllocations(id).reduce((s,x)=>s+Number(x.quantity||0),0)},
+addressText(a){return[a?.line1,a?.line2,a?.city,a?.state,a?.pincode].filter(Boolean).join(', ')||'—'},
+cancellable(){return['draft','created','procurement_required','procurement_in_progress','stock_ready','picking','packed','ready_for_dispatch'].includes(this.order?.status)},
+lifecycleIndex(){
+  const map={draft:0,created:0,procurement_required:1,procurement_in_progress:1,stock_ready:2,picking:3,packed:4,ready_for_dispatch:5,assigned_for_delivery:6,out_for_delivery:6,delivery_failed:6,partially_delivered:6,returned:6,delivered:7,cancelled:0};
+  return map[this.order?.status]??0;
+},
+lifecycleStageClass(index){
+  const current=this.lifecycleIndex(),status=this.order?.status;
+  if(status==='cancelled')return index===0?'is-stopped':'is-upcoming';
+  if(status==='delivered'&&index<=current)return'is-complete is-finished';
+  if(index<current)return'is-complete';
+  if(index===current)return status==='delivery_failed'?'is-active is-attention':'is-active';
+  return'is-upcoming';
+},
+currentStageLabel(){
+  const status=this.order?.status;
+  if(status==='procurement_required')return'Procurement required';
+  if(status==='procurement_in_progress')return'Procurement in progress';
+  if(status==='assigned_for_delivery')return'Delivery assigned';
+  if(status==='delivery_failed')return'Delivery issue';
+  if(status==='partially_delivered')return'Partially delivered';
+  if(status==='returned')return'Returned';
+  if(status==='cancelled')return'Cancelled';
+  return this.lifecycleStages[this.lifecycleIndex()]?.label||humanize(status||'created');
+},
+deliveryProgress(line){
+  let delivered=0,returned=0,statuses=[];
+  for(const d of this.deliveries||[]){const dl=(d.lines||[]).find(x=>x.salesOrderLineId===line.salesOrderLineId);if(dl){delivered+=Number(dl.deliveredQty||0);returned+=Number(dl.returnedQty||0);statuses.push(d.status)}}
+  return{delivered,returned,statuses};
+},
+productJourney(line){
+  const status=this.order?.status,required=Number(line.procurementRequiredQty||0),allocated=this.allocatedQty(line.salesOrderLineId),progress=this.deliveryProgress(line),qty=Number(line.quantity||0);
+  if(status==='cancelled')return{index:0,label:'Cancelled',tone:'is-muted'};
+  if(status==='returned'||progress.returned>=qty&&qty>0)return{index:6,label:'Returned',tone:'is-attention'};
+  if(status==='delivered'||progress.delivered>=qty&&qty>0)return{index:7,label:'Delivered',tone:'is-success'};
+  if(status==='partially_delivered')return{index:6,label:'Partially delivered',tone:'is-warning'};
+  if(status==='delivery_failed')return{index:6,label:'Delivery issue',tone:'is-attention'};
+  if(status==='out_for_delivery')return{index:6,label:'Out for delivery',tone:'is-active'};
+  if(status==='assigned_for_delivery')return{index:6,label:'Delivery assigned',tone:'is-active'};
+  if(status==='ready_for_dispatch')return{index:5,label:'Ready for dispatch',tone:'is-active'};
+  if(status==='packed')return{index:4,label:'Packed',tone:'is-active'};
+  if(status==='picking')return{index:3,label:'Picking',tone:'is-active'};
+  if(status==='stock_ready')return{index:2,label:'Stock ready',tone:'is-success'};
+  if(['procurement_required','procurement_in_progress'].includes(status)){
+    if(required<=0)return{index:2,label:'Stock reserved',tone:'is-success'};
+    if(allocated>=required)return{index:1,label:'Sourced · awaiting stock',tone:'is-warning'};
+    return{index:1,label:'Sourcing '+allocated+'/'+required,tone:'is-warning'};
+  }
+  return{index:0,label:'Ordered',tone:'is-active'};
+},
+productStageClass(line,index){
+  const journey=this.productJourney(line);
+  if(journey.tone==='is-muted')return index===0?'is-current is-muted':'is-upcoming';
+  if(index<journey.index)return'is-done';
+  if(index===journey.index)return'is-current';
+  return'is-upcoming';
+},
+async approve(){try{this.order=(await apiFetch('/api/orders/'+this.orderId+'/approve',{method:'POST',body:'{}'})).data;showCrmToast('Order approved')}catch(e){this.error=e.message}},
+async confirmOrder(){try{this.order=(await apiFetch('/api/orders/'+this.orderId+'/confirm',{method:'POST',body:'{}'})).data;showCrmToast(this.order.status==='stock_ready'?'Stock reserved; order is ready':'Order confirmed; procurement is required');await this.load()}catch(e){this.error=e.message;showCrmToast(e.message,'error')}},
+async issueInvoice(){try{const x=(await apiFetch('/api/finance/invoices/order/'+this.orderId,{method:'POST',body:'{}'})).data;showCrmToast('Invoice issued');location.href='/invoices/'+x.invoiceId}catch(e){this.error=e.message;showCrmToast(e.message,'error')}},
+async cancelOrder(){if(!this.cancelReason.trim())return;try{this.order=(await apiFetch('/api/orders/'+this.orderId+'/cancel',{method:'POST',body:JSON.stringify({reason:this.cancelReason.trim()})})).data;this.showCancel=false;showCrmToast('Order cancelled and stock released')}catch(e){this.error=e.message;showCrmToast(e.message,'error')}}
 }}</script><%- include('partials/scripts') %>
 </body></html>

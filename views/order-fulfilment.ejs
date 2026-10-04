@@ -2,11 +2,91 @@
 <html lang="en" dir="ltr"><%- include('partials/head') %>
 <body x-data="crmShell()" x-init="initShell()"><%- include('partials/navbar') %>
 <div class="page-content"><%- include('partials/sidebar') %><div class="content-wrapper"><div class="content-inner">
-<div class="page-header page-header-light crm-page-header"><div class="page-header-content crm-page-heading"><div><div class="crm-page-eyebrow">Warehouse workflow</div><h1 class="page-title mb-1">Fulfil sales order</h1><p class="crm-page-subtitle mb-0">Reserve arriving stock, pick, pack and hand the completed order to Delivery.</p></div><a class="btn btn-light" :href="'/orders/'+(location.pathname.split('/')[2]||'')">Back to order</a></div></div>
+<div class="page-header page-header-light crm-page-header"><div class="page-header-content crm-page-heading"><div><div class="crm-page-eyebrow">Warehouse workflow</div><h1 class="page-title mb-1">Fulfil sales order</h1><p class="crm-page-subtitle mb-0">Follow warehouse progress from stock readiness through picking, packing and dispatch.</p></div><a class="btn btn-light" :href="'/orders/'+(location.pathname.split('/')[2]||'')">Back to order</a></div></div>
 <div class="content" x-data="orderFulfilmentPage()" x-init="load()"><div x-show="shellError" x-cloak class="alert alert-danger" x-text="shellError"></div><div x-show="error" x-cloak class="alert alert-danger" x-text="error"></div>
-<div class="row g-4"><div class="col-lg-8"><div class="card crm-data-card mb-4"><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1" x-text="order?.orderNumber||'Sales order'"></h2><p class="text-muted mb-0" x-text="order?.warehouseSnapshot?(order.warehouseSnapshot.name+' · '+order.warehouseSnapshot.code):'Warehouse'"></p></div><span class="crm-status" :class="statusClass(order?.status)" x-text="humanize(order?.status)"></span></div><div class="table-responsive"><table class="table crm-table align-middle mb-0"><thead><tr><th>Product</th><th class="text-end">Ordered</th><th class="text-end">Reserved</th><th class="text-end">Procurement need</th><th class="text-end">Allocated</th></tr></thead><tbody><template x-for="l in order?.lines||[]" :key="l.salesOrderLineId"><tr><td><strong x-text="l.productName"></strong><div class="text-muted fs-sm" x-text="l.sku"></div></td><td class="text-end" x-text="l.quantity"></td><td class="text-end" x-text="l.stockReservedQty||0"></td><td class="text-end" x-text="l.procurementRequiredQty||0"></td><td class="text-end" x-text="l.procurementAllocatedQty||0"></td></tr></template></tbody></table></div></div></div>
-<div class="col-lg-4"><div class="card crm-data-card"><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Next warehouse action</h2><p class="text-muted mb-0">Only valid state transitions are shown.</p></div></div><div class="card-body"><template x-if="['procurement_required','procurement_in_progress'].includes(order?.status)"><div><div class="alert alert-warning">Some stock is still not reserved. Recheck after supplier receipts reach this warehouse.</div><button class="btn btn-primary w-100" @click="recheck()">Recheck warehouse stock</button><% if (can('procurement.create')) { %><a class="btn btn-light w-100 mt-2" :href="'/orders/'+orderId+'/procurement'">Manage supplier sourcing</a><% } %></div></template><button x-show="order?.status==='stock_ready'" class="btn btn-primary w-100" @click="advance('picking')">Start picking</button><button x-show="order?.status==='picking'" class="btn btn-primary w-100" @click="advance('packed')">Mark packed</button><button x-show="order?.status==='packed'" class="btn btn-primary w-100" @click="advance('ready_for_dispatch')">Ready for dispatch</button><template x-if="order?.status==='ready_for_dispatch'"><div><div class="alert alert-success">The order is packed and ready to leave this warehouse.</div><% if (can('delivery.assign')) { %><a class="btn btn-primary w-100" :href="'/delivery/assign?salesOrderId='+orderId">Assign delivery</a><% } %></div></template><div x-show="['assigned_for_delivery','out_for_delivery','delivered','partially_delivered','delivery_failed','returned','cancelled'].includes(order?.status)" class="text-muted">Warehouse fulfilment is complete for the current order state.</div></div></div></div></div>
+
+<div class="card crm-data-card mb-4 crm-order-journey-card" x-show="order" x-cloak>
+  <div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Warehouse stage</h2><p class="text-muted mb-0">The highlighted stage is the warehouse's current responsibility for this order.</p></div><div class="crm-order-current-stage-box"><span>Current stage</span><strong x-text="currentStageLabel()"></strong></div></div>
+  <div class="card-body">
+    <div class="crm-order-lifecycle crm-order-lifecycle-compact" role="list" aria-label="Warehouse fulfilment stages">
+      <template x-for="(stage,index) in warehouseStages" :key="stage.label">
+        <div class="crm-order-lifecycle-stage" role="listitem" :class="stageClass(index)">
+          <span class="crm-order-lifecycle-node"><span x-show="index>=warehouseStageIndex()" x-text="index+1"></span><span x-show="index<warehouseStageIndex()">✓</span></span>
+          <div><strong x-text="stage.label"></strong><small x-text="stage.note"></small></div>
+        </div>
+      </template>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card crm-data-card mb-4">
+      <div class="card-header crm-card-heading"><div><h2 class="card-title mb-1" x-text="order?.orderNumber||'Sales order'"></h2><p class="text-muted mb-0" x-text="order?.warehouseSnapshot?(order.warehouseSnapshot.name+' · '+order.warehouseSnapshot.code):'Warehouse'"></p></div><span class="crm-status" :class="statusClass(order?.status)" x-text="humanize(order?.status)"></span></div>
+      <div class="table-responsive"><table class="table crm-table align-middle mb-0"><thead><tr><th>Product</th><th>Stage</th><th class="text-end">Ordered</th><th class="text-end">Reserved</th><th class="text-end">Procurement need</th><th class="text-end">Allocated</th></tr></thead><tbody><template x-for="l in order?.lines||[]" :key="l.salesOrderLineId"><tr><td><strong x-text="l.productName"></strong><div class="text-muted fs-sm" x-text="l.sku"></div></td><td><span class="crm-product-stage-badge" :class="lineStage(l).tone" x-text="lineStage(l).label"></span></td><td class="text-end" x-text="l.quantity"></td><td class="text-end" x-text="l.stockReservedQty||0"></td><td class="text-end" x-text="l.procurementRequiredQty||0"></td><td class="text-end" x-text="l.procurementAllocatedQty||0"></td></tr></template></tbody></table></div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card crm-data-card">
+      <div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Next warehouse action</h2><p class="text-muted mb-0">Only the next valid operational step is enabled.</p></div></div>
+      <div class="card-body">
+        <template x-if="['procurement_required','procurement_in_progress'].includes(order?.status)"><div><div class="alert alert-warning">Some stock is still not reserved. Recheck after supplier receipts reach this warehouse.</div><button class="btn btn-primary w-100" @click="recheck()">Recheck warehouse stock</button><% if (can('procurement.create')) { %><a class="btn btn-light w-100 mt-2" :href="'/orders/'+orderId+'/procurement'">Manage supplier sourcing</a><% } %></div></template>
+        <button x-show="order?.status==='stock_ready'" class="btn btn-primary w-100" @click="advance('picking')">Start picking</button>
+        <button x-show="order?.status==='picking'" class="btn btn-primary w-100" @click="advance('packed')">Mark packed</button>
+        <button x-show="order?.status==='packed'" class="btn btn-primary w-100" @click="advance('ready_for_dispatch')">Ready for dispatch</button>
+        <template x-if="order?.status==='ready_for_dispatch'"><div><div class="alert alert-success">The order is packed and ready to leave this warehouse.</div><% if (can('delivery.assign')) { %><a class="btn btn-primary w-100" :href="'/delivery/assign?salesOrderId='+orderId">Assign delivery</a><% } %></div></template>
+        <div x-show="['assigned_for_delivery','out_for_delivery','delivered','partially_delivered','delivery_failed','returned','cancelled'].includes(order?.status)" class="text-muted">Warehouse fulfilment is complete for the current order state.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 </div><%- include('partials/footer') %></div></div></div>
 <script nonce="<%= cspNonce %>">
-function orderFulfilmentPage(){return{orderId:location.pathname.split('/')[2]||'',order:null,error:'',async load(){try{this.order=(await apiFetch('/api/orders/'+this.orderId)).data}catch(e){this.error=e.message}},async refresh(){this.order=(await apiFetch('/api/orders/'+this.orderId)).data},async recheck(){try{this.order=(await apiFetch('/api/orders/'+this.orderId+'/recheck-stock',{method:'POST',body:'{}'})).data;showCrmToast(this.order.status==='stock_ready'?'Stock reserved; ready to pick':'Procurement is still required')}catch(e){this.error=e.message;showCrmToast(e.message,'error')}},async advance(status){try{this.order=(await apiFetch('/api/orders/'+this.orderId+'/fulfil',{method:'POST',body:JSON.stringify({status})})).data;showCrmToast('Fulfilment updated')}catch(e){this.error=e.message;showCrmToast(e.message,'error')}}}}</script><%- include('partials/scripts') %>
+function orderFulfilmentPage(){return{
+orderId:location.pathname.split('/')[2]||'',order:null,error:'',
+warehouseStages:[
+  {label:'Stock & sourcing',note:'Reserve or source demand'},
+  {label:'Stock ready',note:'All product demand available'},
+  {label:'Picking',note:'Pick products from warehouse'},
+  {label:'Packed',note:'Pack complete order'},
+  {label:'Dispatch ready',note:'Handover to delivery'}
+],
+async load(){try{this.order=(await apiFetch('/api/orders/'+this.orderId)).data}catch(e){this.error=e.message}},
+async refresh(){this.order=(await apiFetch('/api/orders/'+this.orderId)).data},
+warehouseStageIndex(){
+  const map={procurement_required:0,procurement_in_progress:0,stock_ready:1,picking:2,packed:3,ready_for_dispatch:4,assigned_for_delivery:4,out_for_delivery:4,delivered:4,partially_delivered:4,delivery_failed:4,returned:4};
+  return map[this.order?.status]??0;
+},
+stageClass(index){
+  const current=this.warehouseStageIndex();
+  if(index<current)return'is-complete';
+  if(index===current)return'is-active';
+  return'is-upcoming';
+},
+currentStageLabel(){
+  const status=this.order?.status;
+  if(status==='procurement_required')return'Procurement required';
+  if(status==='procurement_in_progress')return'Procurement in progress';
+  if(status==='assigned_for_delivery'||status==='out_for_delivery'||status==='delivered'||status==='partially_delivered'||status==='delivery_failed'||status==='returned')return'Warehouse handover complete';
+  return this.warehouseStages[this.warehouseStageIndex()]?.label||humanize(status||'');
+},
+lineStage(line){
+  const status=this.order?.status,required=Number(line.procurementRequiredQty||0),allocated=Number(line.procurementAllocatedQty||0);
+  if(['procurement_required','procurement_in_progress'].includes(status)){
+    if(required<=0)return{label:'Stock reserved',tone:'is-success'};
+    if(allocated>=required)return{label:'Sourced · awaiting receipt',tone:'is-warning'};
+    return{label:'Sourcing '+allocated+'/'+required,tone:'is-warning'};
+  }
+  if(status==='stock_ready')return{label:'Stock ready',tone:'is-success'};
+  if(status==='picking')return{label:'Picking',tone:'is-active'};
+  if(status==='packed')return{label:'Packed',tone:'is-active'};
+  if(status==='ready_for_dispatch')return{label:'Ready for dispatch',tone:'is-success'};
+  if(['assigned_for_delivery','out_for_delivery','delivered','partially_delivered','delivery_failed','returned'].includes(status))return{label:'Handed to delivery',tone:'is-success'};
+  if(status==='cancelled')return{label:'Cancelled',tone:'is-muted'};
+  return{label:'Waiting for confirmation',tone:'is-muted'};
+},
+async recheck(){try{this.order=(await apiFetch('/api/orders/'+this.orderId+'/recheck-stock',{method:'POST',body:'{}'})).data;showCrmToast(this.order.status==='stock_ready'?'Stock reserved; ready to pick':'Procurement is still required')}catch(e){this.error=e.message;showCrmToast(e.message,'error')}},
+async advance(status){try{this.order=(await apiFetch('/api/orders/'+this.orderId+'/fulfil',{method:'POST',body:JSON.stringify({status})})).data;showCrmToast('Fulfilment updated')}catch(e){this.error=e.message;showCrmToast(e.message,'error')}}
+}}</script><%- include('partials/scripts') %>
 </body></html>
