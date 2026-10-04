@@ -12,15 +12,15 @@ function withEnv(values,fn){
 test("non-production configuration does not require production secrets",()=>withEnv({NODE_ENV:"test",AUTH_COOKIE_SECRET:undefined,MONGODB_URI:undefined},()=>assert.doesNotThrow(assertProductionConfig)));
 
 test("production rejects missing or weak auth cookie secrets",()=>{
-  withEnv({NODE_ENV:"production",AUTH_COOKIE_SECRET:"short",MONGODB_URI:"mongodb://example/b2b",B2B_OTP_BASE_URL:"https://api.findoly.com/otp"},()=>assert.throws(assertProductionConfig,/AUTH_COOKIE_SECRET/));
+  withEnv({NODE_ENV:"production",SKIP_DB:undefined,AUTH_COOKIE_SECRET:"short",MONGODB_URI:"mongodb://example/b2b",B2B_OTP_BASE_URL:"https://api.findoly.com/otp"},()=>assert.throws(assertProductionConfig,/AUTH_COOKIE_SECRET/));
 });
 
 test("production requires MongoDB configuration",()=>{
-  withEnv({NODE_ENV:"production",AUTH_COOKIE_SECRET:"a".repeat(40),MONGODB_URI:"",B2B_OTP_BASE_URL:"https://api.findoly.com/otp"},()=>assert.throws(assertProductionConfig,/MONGODB_URI/));
+  withEnv({NODE_ENV:"production",SKIP_DB:undefined,AUTH_COOKIE_SECRET:"a".repeat(40),MONGODB_URI:"",B2B_OTP_BASE_URL:"https://api.findoly.com/otp"},()=>assert.throws(assertProductionConfig,/MONGODB_URI/));
 });
 
 test("production requires HTTPS OTP service",()=>{
-  withEnv({NODE_ENV:"production",AUTH_COOKIE_SECRET:"a".repeat(40),MONGODB_URI:"mongodb://example/b2b",B2B_OTP_BASE_URL:"http://api.findoly.com/otp"},()=>assert.throws(assertProductionConfig,/HTTPS/));
+  withEnv({NODE_ENV:"production",SKIP_DB:undefined,AUTH_COOKIE_SECRET:"a".repeat(40),MONGODB_URI:"mongodb://example/b2b",B2B_OTP_BASE_URL:"http://api.findoly.com/otp"},()=>assert.throws(assertProductionConfig,/HTTPS/));
 });
 
 test("production rejects SKIP_DB bypass",()=>{
@@ -28,5 +28,5 @@ test("production rejects SKIP_DB bypass",()=>{
 });
 
 test("valid production configuration passes",()=>{
-  withEnv({NODE_ENV:"production",AUTH_COOKIE_SECRET:"a".repeat(40),MONGODB_URI:"mongodb://example/b2b",B2B_OTP_BASE_URL:"https://api.findoly.com/otp"},()=>assert.doesNotThrow(assertProductionConfig));
+  withEnv({NODE_ENV:"production",SKIP_DB:undefined,AUTH_COOKIE_SECRET:"a".repeat(40),MONGODB_URI:"mongodb://example/b2b",B2B_OTP_BASE_URL:"https://api.findoly.com/otp"},()=>assert.doesNotThrow(assertProductionConfig));
 });
