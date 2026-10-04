@@ -11,33 +11,6 @@ permissions:
   contents: read
 
 jobs:
-  lockfile:
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout PR branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
-      - name: Use Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - name: Generate npm lockfile
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-      - name: Commit generated lockfile
-        run: |
-          if [ -n "$(git status --porcelain package-lock.json)" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add package-lock.json
-            git commit -m "Add deterministic npm lockfile"
-            git push origin HEAD:${{ github.head_ref }}
-          fi
-
   qa:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -52,8 +25,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: npm
       - name: Install dependencies
-        run: npm install --no-package-lock --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Run production QA
         run: npm run qa:production
 
@@ -71,8 +45,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: npm
       - name: Install dependencies
-        run: npm install --no-package-lock --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Start Mongo replica set
         run: |
           docker run -d --name findoly-mongo -p 27017:27017 mongo:8 --replSet rs0 --bind_ip_all
@@ -80,10 +55,12 @@ jobs:
             if docker exec findoly-mongo mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok' | grep -q 1; then break; fi
             sleep 1
           done
+          docker exec findoly-mongo mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok' | grep -q 1
           docker exec findoly-mongo mongosh --quiet --eval 'rs.initiate({_id:"rs0",members:[{_id:0,host:"127.0.0.1:27017"}]})'
           for i in {1..30}; do
             if docker exec findoly-mongo mongosh --quiet --eval 'db.hello().isWritablePrimary' | grep -q true; then break; fi
             sleep 1
           done
+          docker exec findoly-mongo mongosh --quiet --eval 'db.hello().isWritablePrimary' | grep -q true
       - name: Run transaction integration test
         run: npm run qa:transactions
