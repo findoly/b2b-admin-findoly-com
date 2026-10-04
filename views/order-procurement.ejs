@@ -8,7 +8,7 @@
 <div class="card crm-data-card mb-4 crm-order-journey-card" x-show="order" x-cloak>
   <div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Sourcing stage</h2><p class="text-muted mb-0">This order cannot move to warehouse picking until every required unit reaches stock-ready state.</p></div><div class="crm-order-current-stage-box"><span>Current stage</span><strong x-text="currentSourcingLabel()"></strong></div></div>
   <div class="card-body">
-    <div class="crm-order-lifecycle crm-order-lifecycle-compact" role="list" aria-label="Sourcing and warehouse stages">
+    <div class="crm-order-lifecycle crm-order-lifecycle-compact crm-order-lifecycle-four" role="list" aria-label="Sourcing and warehouse stages">
       <template x-for="(stage,index) in sourcingStages" :key="stage.label">
         <div class="crm-order-lifecycle-stage" role="listitem" :class="sourcingStageClass(index)">
           <span class="crm-order-lifecycle-node"><span x-show="index>=sourcingStageIndex()" x-text="index+1"></span><span x-show="index<sourcingStageIndex()">✓</span></span>
