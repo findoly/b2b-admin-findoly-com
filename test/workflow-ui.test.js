@@ -51,7 +51,7 @@ test("connected record pages do not require unrelated inventory or product API p
   assert.match(orderRoutes,/\/options\/warehouses/);
   assert.match(orderRoutes,/requirePermission\("orders\.create"\),c\.orderWarehouseOptions/);
   for(const file of["views/orders.ejs","views/order-detail.ejs","views/order-fulfilment.ejs"])assert.doesNotMatch(read(file),/api\/warehouses/,file);
-  assert.match(read("views/order-form.ejs"),/api\/orders\/options\/warehouses/);
+  assert.match(read("views/order-form.ejs"),/api\/orders\/options\/warehouse-availability/);
   const orderService=read("services/order-service.js");
   assert.match(orderService,/async function warehouseOptions/);
   assert.match(orderService,/warehouseSnapshot/);
