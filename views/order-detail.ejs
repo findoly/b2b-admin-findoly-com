@@ -2,7 +2,7 @@
 <html lang="en" dir="ltr"><%- include('partials/head') %>
 <body x-data="crmShell()" x-init="initShell()"><%- include('partials/navbar') %>
 <div class="page-content"><%- include('partials/sidebar') %><div class="content-wrapper"><div class="content-inner">
-<div class="page-header page-header-light crm-page-header"><div class="page-header-content crm-page-heading"><div><div class="crm-page-eyebrow">Connected distribution record</div><h1 class="page-title mb-1" x-data x-text="document.body.dataset.orderTitle||'Sales order'">Sales order</h1><p class="crm-page-subtitle mb-0">Customer, product demand, supplier sourcing, warehouse fulfilment and delivery in one operational view.</p></div><div class="d-flex gap-2"><a class="btn btn-light" href="/orders">Back</a></div></div></div>
+<div class="page-header page-header-light crm-page-header"><div class="page-header-content crm-page-heading"><div><div class="crm-page-eyebrow">Connected distribution record</div><h1 class="page-title mb-1" x-data x-text="bodyData('orderTitle','Sales order')">Sales order</h1><p class="crm-page-subtitle mb-0">Customer, product demand, supplier sourcing, warehouse fulfilment and delivery in one operational view.</p></div><div class="d-flex gap-2"><a class="btn btn-light" href="/orders">Back</a></div></div></div>
 <div class="content" x-data="orderDetailPage()" x-init="load()"><div x-show="shellError" x-cloak class="alert alert-danger" x-text="shellError"></div><div x-show="error" x-cloak class="alert alert-danger" x-text="error"></div>
 <template x-if="loading"><div class="card crm-data-card"><div class="card-body"><div class="crm-table-loading"><span></span><span></span><span></span></div></div></div></template>
 <div x-show="order" x-cloak>
