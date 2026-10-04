@@ -31,7 +31,7 @@
 
 <div class="card crm-data-card" x-show="step===2" x-cloak><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">2. Products & selling price</h2><p class="text-muted mb-0">Choose products and quantities first. Warehouse availability is calculated from this demand.</p></div><div class="d-flex gap-2"><label class="visually-hidden" for="product-search">Search products</label><input id="product-search" class="form-control form-control-sm" placeholder="Search products" x-model="productSearch" @input.debounce.300ms="searchProducts()" @keyup.enter="searchProducts()"><button class="btn btn-light btn-sm" type="button" @click="searchProducts()">Find</button><button class="btn btn-light btn-sm" type="button" @click="addLine()">Add product</button></div></div>
   <div class="table-responsive"><table class="table crm-table align-middle mb-0"><thead><tr><th>Product</th><th>Manufacturer</th><th style="width:120px">Qty</th><th style="width:180px">Agreed price ₹</th><th style="width:55px"></th></tr></thead><tbody><template x-for="(line,index) in form.lines" :key="line.key"><tr><td><select class="form-select" x-model="line.productId" @change="productsChanged()"><option value="">Select product</option><template x-for="p in products" :key="p.productId"><option :value="p.productId" x-text="p.name+' · '+p.sku"></option></template></select></td><td x-text="crmValue(product(line.productId),'manufacturer','—')"></td><td><input type="number" min="1" class="form-control" x-model.number="line.quantity" @input="productsChanged()"></td><td><input type="number" min="0" step="0.01" class="form-control" placeholder="Auto" x-model="line.unitPriceRupees"><div class="text-muted fs-sm" x-show="product(line.productId)" x-text="'Reference '+money(crmValue(product(line.productId),'referenceSellingPricePaise',0))"></div></td><td><button class="btn btn-light btn-sm" type="button" @click="removeLine(index)" :disabled="form.lines.length===1">×</button></td></tr></template></tbody></table></div>
-  <div class="d-flex justify-content-between p-3"><button class="btn btn-light" type="button" @click="step=1">Back</button><button class="btn btn-primary" type="button" @click="next()" :disabled="warehouseAvailabilityLoading" x-text="warehouseAvailabilityLoading?'Checking stock…':'Continue'"></button></div>
+  <div class="d-flex justify-content-between p-3"><button class="btn btn-light" type="button" @click="go(1)">Back</button><button class="btn btn-primary" type="button" @click="next()" :disabled="warehouseAvailabilityLoading" x-text="warehouseAvailabilityLoading?'Checking stock…':'Continue'"></button></div>
 </div>
 
 <div class="card crm-data-card" x-show="step===3" x-cloak><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">3. Warehouse & commercial terms</h2><p class="text-muted mb-0">The best warehouse is selected automatically from current available stock for the chosen products.</p></div><span class="badge bg-primary bg-opacity-10 text-primary" x-show="selectedWarehouse">Auto-selected</span></div><div class="card-body">
@@ -63,7 +63,7 @@
 <script nonce="<%= cspNonce %>">
 const ORDER_DRAFT_KEY='findoly.b2b.order-draft.v1';
 function orderFormPage(){return{
-steps:['Customer','Products','Warehouse','Review'],stepNotes:['Choose customer account','Add products, quantity & price','Auto-match stock & terms','Confirm before creation'],step:1,customers:[],products:[],warehouses:[],customerSearch:'',productSearch:'',error:'',saving:false,warehouseAvailabilityLoading:false,customerAbort:null,productAbort:null,draftTimer:null,submissionKey:requestIdempotencyKey(),form:{customerId:'',warehouseId:'',paymentTermDays:0,gstTreatment:'unclassified',notes:'',lines:[]},
+steps:['Customer','Products','Warehouse','Review'],stepNotes:['Choose customer account','Add products, quantity & price','Auto-match stock & terms','Confirm before creation'],step:1,customers:[],products:[],warehouses:[],customerSearch:'',productSearch:'',error:'',saving:false,warehouseAvailabilityLoading:false,customerAbort:null,productAbort:null,warehouseAbort:null,draftTimer:null,submissionKey:requestIdempotencyKey(),form:{customerId:'',warehouseId:'',paymentTermDays:0,gstTreatment:'unclassified',notes:'',lines:[]},
 newLine(){return{key:crypto.randomUUID(),productId:'',quantity:1,unitPriceRupees:''}},
 get selectedCustomer(){return this.customers.find(x=>x.customerId===this.form.customerId)||null},
 get selectedWarehouse(){return this.warehouses.find(x=>x.warehouseId===this.form.warehouseId)||null},
@@ -93,7 +93,7 @@ scheduleDraftSave(){
     }catch(_){}
   },250);
 },
-clearDraft(){try{sessionStorage.removeItem(ORDER_DRAFT_KEY)}catch(_){}},
+clearDraft(){clearTimeout(this.draftTimer);this.draftTimer=null;try{sessionStorage.removeItem(ORDER_DRAFT_KEY)}catch(_){}},
 async load(){
   this.form.lines=[this.newLine()];
   try{
@@ -104,19 +104,30 @@ async load(){
   }catch(e){this.error=e.message}
 },
 async searchCustomers(){
+  this.customerAbort?.abort();
+  const controller=new AbortController();this.customerAbort=controller;
   const query=this.customerSearch.trim();if(query.length<2)return;
-  this.customerAbort?.abort();this.customerAbort=new AbortController();
-  try{this.customers=(await apiFetch('/api/customers?limit=25&search='+encodeURIComponent(query),{signal:this.customerAbort.signal})).data.items||[]}
-  catch(e){if(e.name!=='AbortError')this.error=e.message}
+  try{
+    const items=(await apiFetch('/api/customers?limit=25&search='+encodeURIComponent(query),{signal:controller.signal})).data.items||[];
+    if(controller.signal.aborted||this.customerAbort!==controller)return;
+    const selected=this.selectedCustomer;
+    this.customers=selected&&!items.some(x=>x.customerId===selected.customerId)?[selected,...items]:items;
+  }catch(e){if(!controller.signal.aborted&&this.customerAbort===controller&&e.name!=='AbortError')this.error=e.message}
 },
 async searchProducts(){
+  this.productAbort?.abort();
+  const controller=new AbortController();this.productAbort=controller;
   const query=this.productSearch.trim();if(query.length<2)return;
-  this.productAbort?.abort();this.productAbort=new AbortController();
-  try{this.products=(await apiFetch('/api/products?limit=25&search='+encodeURIComponent(query),{signal:this.productAbort.signal})).data.items||[]}
-  catch(e){if(e.name!=='AbortError')this.error=e.message}
+  try{
+    const items=(await apiFetch('/api/products?limit=25&search='+encodeURIComponent(query),{signal:controller.signal})).data.items||[];
+    if(controller.signal.aborted||this.productAbort!==controller)return;
+    const selectedIds=new Set(this.form.lines.map(line=>line.productId));
+    const retained=this.products.filter(product=>selectedIds.has(product.productId)&&!items.some(x=>x.productId===product.productId));
+    this.products=[...retained,...items];
+  }catch(e){if(!controller.signal.aborted&&this.productAbort===controller&&e.name!=='AbortError')this.error=e.message}
 },
 customerChanged(){if(this.selectedCustomer)this.form.paymentTermDays=Number(this.selectedCustomer.paymentTermDays||0)},
-productsChanged(){this.form.warehouseId='';this.warehouses=[]},
+productsChanged(){this.warehouseAbort?.abort();this.warehouseAbort=null;this.warehouseAvailabilityLoading=false;this.form.warehouseId='';this.warehouses=[]},
 addLine(){this.form.lines.push(this.newLine());this.productsChanged()},
 removeLine(i){if(this.form.lines.length>1){this.form.lines.splice(i,1);this.productsChanged()}},
 validateStep(target){
@@ -127,25 +138,28 @@ validateStep(target){
   return true
 },
 async loadWarehouseAvailability(){
+  this.warehouseAbort?.abort();
+  const controller=new AbortController();this.warehouseAbort=controller;
   this.error='';this.warehouseAvailabilityLoading=true;
   try{
     const lines=this.form.lines.map(x=>({productId:x.productId,quantity:Number(x.quantity)}));
-    const result=(await apiFetch('/api/orders/options/warehouse-availability?lines='+encodeURIComponent(JSON.stringify(lines)))).data;
+    const result=(await apiFetch('/api/orders/options/warehouse-availability?lines='+encodeURIComponent(JSON.stringify(lines)),{signal:controller.signal})).data;
+    if(controller.signal.aborted||this.warehouseAbort!==controller)return false;
     this.warehouses=result?.warehouses||[];
     this.form.warehouseId=result?.recommendedWarehouseId||'';
     if(!this.warehouses.length||!this.form.warehouseId){this.error='No active warehouse is available for this sales order.';return false}
     return true;
-  }catch(e){this.error=e.message;return false}
-  finally{this.warehouseAvailabilityLoading=false}
+  }catch(e){if(!controller.signal.aborted&&this.warehouseAbort===controller&&e.name!=='AbortError')this.error=e.message;return false}
+  finally{if(this.warehouseAbort===controller)this.warehouseAvailabilityLoading=false}
 },
 async next(){
   if(this.step===1){if(this.validateStep(2))this.step=2;return}
-  if(this.step===2){if(!this.validateStep(3))return;if(await this.loadWarehouseAvailability())this.step=3;return}
+  if(this.step===2){if(this.warehouseAvailabilityLoading||!this.validateStep(3))return;if(await this.loadWarehouseAvailability()&&this.step===2)this.step=3;return}
   if(this.step===3&&this.validateStep(4))this.step=4;
 },
-go(target){if(target<=this.step){this.error='';this.step=target}},
+go(target){if(target<=this.step){if(target<this.step&&this.warehouseAvailabilityLoading)this.productsChanged();this.error='';this.step=target}},
 async createOrder(){
-  if(!this.validateStep(4))return;this.saving=true;
+  if(this.saving||!this.validateStep(4))return;this.saving=true;
   try{
     const lines=this.form.lines.map(l=>{const x={productId:l.productId,quantity:Number(l.quantity)};if(String(l.unitPriceRupees)!=='')x.unitPricePaise=Math.round(Number(l.unitPriceRupees||0)*100);return x});
     const order=(await apiFetch('/api/orders',{method:'POST',headers:{'Idempotency-Key':this.submissionKey},body:JSON.stringify({...this.form,lines})})).data;
