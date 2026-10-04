@@ -62,6 +62,25 @@ test("CRM runtime loads local Alpine first and only reports a real runtime failu
   assert.match(runtime,/if \(window\.Alpine\)/);
 });
 
+
+test("admin shell uses Alpine CSP build without unsafe-eval",()=>{
+  const app=fs.readFileSync(path.join(root,"app.js"),"utf8");
+  const pkg=JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8"));
+  assert.doesNotMatch(app,/unsafe-eval/);
+  assert.match(app,/@alpinejs\/csp\/dist/);
+  assert.equal(pkg.dependencies["@alpinejs/csp"],"3.15.12");
+  assert.equal(pkg.dependencies.alpinejs,undefined);
+});
+
+test("server rendered admin shell exposes CSRF state without a redundant auth bootstrap call",()=>{
+  const head=fs.readFileSync(path.join(root,"views/partials/head.ejs"),"utf8");
+  const scripts=fs.readFileSync(path.join(root,"views/partials/scripts.ejs"),"utf8");
+  assert.match(head,/meta name="csrf-token"/);
+  assert.match(head,/__crmServerAdmin/);
+  assert.match(scripts,/X-CSRF-Token/);
+  assert.match(scripts,/if\(this\.admin\?\.employeeId\)return/);
+});
+
 test("delivery workflow uses dedicated connected pages",()=>{
   const routes=fs.readFileSync(path.join(root,"routes/frontend.js"),"utf8");
   const list=fs.readFileSync(path.join(root,"views/delivery.ejs"),"utf8");
