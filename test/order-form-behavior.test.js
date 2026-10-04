@@ -109,3 +109,72 @@ test("clearing a completed draft cancels delayed writes",()=>{
   const {page,timers,storage}=harness();page.scheduleDraftSave();assert.equal(timers.size,1);page.clearDraft();
   assert.equal(timers.size,0);assert.equal(storage.size,0);
 });
+
+function preparePrice(page){
+  page.form.customerId='customer-a';const line=page.newLine();line.productId='rice';page.form.lines=[line];return line;
+}
+function priceResult(unitPricePaise,source='negotiated'){return {data:{unitPricePaise,source}};}
+
+test('selecting a mapped product populates negotiated rupees and submits that price',async()=>{
+  const {page,pending}=harness(),line=preparePrice(page);
+  const lookup=page.productChanged(line);assert.equal(line.priceLoading,true);
+  assert.match(pending[0].url,/customerId=customer-a&productId=rice&quantity=1/);
+  pending[0].resolve(priceResult(12345));await lookup;
+  assert.equal(line.unitPriceRupees,'123.45');assert.equal(page.priceLabel(line),'Negotiated customer price');
+  page.form.warehouseId='warehouse';const create=page.createOrder();
+  assert.equal(JSON.parse(pending[1].options.body).lines[0].unitPricePaise,12345);
+  pending[1].resolve({data:{salesOrderId:'order'}});await create;
+});
+
+test('changing quantity refreshes automatic price and supports zero negotiated price',async()=>{
+  const {page,pending}=harness(),line=preparePrice(page);line.quantity=10;
+  let lookup=page.quantityChanged(line);pending[0].resolve(priceResult(0));await lookup;
+  assert.equal(line.unitPriceRupees,'0.00');
+  line.quantity=1;lookup=page.quantityChanged(line);pending[1].resolve(priceResult(5000,'reference'));await lookup;
+  assert.equal(line.unitPriceRupees,'50.00');assert.match(page.priceLabel(line),/Reference price/);
+});
+
+test('changing customer resets the old price and ignores its late response',async()=>{
+  const {page,pending}=harness(),line=preparePrice(page);
+  const old=page.productChanged(line);page.form.customerId='customer-b';const current=page.customerChanged();
+  assert.equal(pending[0].options.signal.aborted,true);
+  pending[1].resolve(priceResult(8000));await current;pending[0].resolve(priceResult(12000));await old;
+  assert.equal(line.unitPriceRupees,'80.00');assert.equal(line.priceLoading,false);
+});
+
+test('manual edits survive late quotes and quantity changes; reset restores customer pricing',async()=>{
+  const {page,pending}=harness(),line=preparePrice(page);const old=page.productChanged(line);
+  line.unitPriceRupees='75.50';page.priceEdited(line);pending[0].resolve(priceResult(5000));await old;
+  line.quantity=2;await page.quantityChanged(line);assert.equal(pending.length,1);assert.equal(line.unitPriceRupees,'75.50');
+  const reset=page.refreshLinePrice(line,true);pending[1].resolve(priceResult(6000));await reset;
+  assert.equal(line.unitPriceRupees,'60.00');assert.equal(line.priceMode,'auto');
+});
+
+test('changing product clears manual pricing from the previous product',async()=>{
+  const {page,pending}=harness(),line=preparePrice(page);line.unitPriceRupees='75';page.priceEdited(line);
+  line.productId='oil';const lookup=page.productChanged(line);assert.equal(line.unitPriceRupees,'');
+  pending[0].resolve(priceResult(9000));await lookup;assert.equal(line.unitPriceRupees,'90.00');
+});
+
+test('failed lookup blocks progression until Retry resolves the price',async()=>{
+  const {page,pending}=harness(),line=preparePrice(page);page.step=2;
+  let lookup=page.productChanged(line);assert.equal(page.validateStep(3),false);
+  pending[0].reject(new Error('Pricing temporarily unavailable'));await lookup;
+  assert.equal(line.priceError,'Pricing temporarily unavailable');assert.equal(page.validateStep(3),false);
+  lookup=page.refreshLinePrice(line);pending[1].resolve(priceResult(5000));await lookup;
+  assert.equal(line.priceError,'');assert.equal(page.validateStep(3),true);
+});
+
+test('clearing a product cancels its old price lookup',async()=>{
+  const {page,pending}=harness(),line=preparePrice(page);const lookup=page.productChanged(line);
+  line.productId='';await page.productChanged(line);pending[0].resolve(priceResult(5000));await lookup;
+  assert.equal(line.unitPriceRupees,'');assert.equal(line.priceLoading,false);
+});
+
+test('restored automatic drafts re-fetch prices instead of retaining a stale agreement',async()=>{
+  const {page,pending,storage}=harness(),line=preparePrice(page);line.unitPriceRupees='999.00';
+  storage.set('findoly.b2b.order-draft.v1',JSON.stringify({form:page.form,products:[]}));
+  const loading=page.load();pending[0].resolve({data:{items:[]}});pending[1].resolve({data:{items:[]}});
+  await new Promise(resolve=>setImmediate(resolve));assert.equal(pending.length,3);
+  pending[2].resolve(priceResult(5500));await loading;assert.equal(page.form.lines[0].unitPriceRupees,'55.00');
+});

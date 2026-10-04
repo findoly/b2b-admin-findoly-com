@@ -26,7 +26,9 @@ test("sales-order procurement requirement is explicit and allocation is bounded"
   assert.ok(line.path("procurementRequiredQty"));
   const source=read("services/order-service.js");
   assert.match(source,/DUPLICATE_ORDER_PRODUCT/);
-  assert.match(source,/validFrom:\{\$lte:now\}/);
+  assert.match(source,/CustomerPrice\.find\(effectiveAgreementQuery\(customerId,/);
+  const now=new Date();
+  assert.deepEqual(require("../services/pricing-service").effectiveAgreementQuery("customer","product",now),{customerId:"customer",productId:"product",active:true,approvalStatus:"approved",validFrom:{$lte:now},$or:[{validUntil:null},{validUntil:{$gte:now}}]});
   assert.match(source,/PROCUREMENT_OVERALLOCATED/);
   assert.match(source,/offer\.productId!==line\.productId/);
   assert.match(source,/ORDER_INVOICED/);

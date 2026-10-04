@@ -111,3 +111,11 @@ test("mongoose validation and duplicate errors map to client-safe HTTP statuses"
   assert.deepEqual(normalizedError({code:11000}),{status:409,code:"DUPLICATE_RESOURCE",message:"A record with the same unique value already exists",expose:true});
   assert.deepEqual(normalizedError({code:112,message:"WriteConflict"}),{status:409,code:"RETRYABLE_CONFLICT",message:"The record changed while this action was being processed. Retry the action.",expose:true});
 });
+
+test('sales-order price lookup requires order creation permission, not pricing-management permission',async()=>{
+  const endpoint='/api/orders/options/price?customerId=invalid&productId=invalid&quantity=1';
+  assert.equal((await request(app).get(endpoint)).status,401);
+  assert.equal((await request(app).get(endpoint).set('Cookie',authCookie(['pricing.view']))).status,403);
+  const allowed=await request(app).get(endpoint).set('Cookie',authCookie(['orders.create']));
+  assert.equal(allowed.status,400);assert.equal(allowed.body.code,'VALIDATION_ERROR');
+});

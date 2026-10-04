@@ -10,6 +10,9 @@ const InventoryMovement=require("../models/InventoryMovement");
 const Product=require("../models/Product");
 const orderService=require("../services/order-service");
 const uuid=require("../utils/uuid");
+const Employee=require("../models/Employee");
+const CustomerPrice=require("../models/CustomerProductPrice");
+const pricingService=require("../services/pricing-service");
 
 test("order confirmation reserves stock inside a real Mongo transaction",async(t)=>{
   const uri=String(process.env.MONGODB_URI||"").trim();
@@ -74,4 +77,42 @@ test("order confirmation reserves stock inside a real Mongo transaction",async(t
   const movement=await InventoryMovement.findOne({referenceId:salesOrderId,movementType:"reserve"}).lean();
   assert.ok(movement);
   assert.equal(movement.quantityDelta,3);
+
+  await Employee.create({employeeId:actor,name:"Pricing Test Employee",mobile:"9000000002",normalizedMobile:"9000000002",roleId:uuid()});
+  const admin={employeeId:actor,permissions:["orders.create"]};
+  const now=Date.now();
+  const baseAgreement={customerId,productId,unitPricePaise:4200,minimumQuantity:5,validFrom:new Date(now-60000),validUntil:null,approvalStatus:"approved",active:true,negotiatedBy:actor,createdBy:actor,updatedBy:actor};
+  for(const scenario of [
+    {name:"eligible approved agreement",quantity:5,patch:{},expected:4200,source:"negotiated"},
+    {name:"below agreement minimum quantity",quantity:4,patch:{},expected:5000,source:"reference"},
+    {name:"pending agreement",quantity:5,patch:{approvalStatus:"pending"},expected:5000,source:"reference"},
+    {name:"expired agreement",quantity:5,patch:{validUntil:new Date(now-1000)},expected:5000,source:"reference"},
+    {name:"future agreement",quantity:5,patch:{validFrom:new Date(now+86400000)},expected:5000,source:"reference"},
+    {name:"inactive agreement",quantity:5,patch:{active:false},expected:5000,source:"reference"},
+    {name:"other customer agreement",quantity:5,patch:{customerId:uuid()},expected:5000,source:"reference"},
+    {name:"zero negotiated price",quantity:5,patch:{unitPricePaise:0},expected:0,source:"negotiated"}
+  ]){
+    await t.test(scenario.name,async()=>{
+      await CustomerPrice.deleteMany({});
+      const agreement=await CustomerPrice.create({...baseAgreement,...scenario.patch});
+      const quote=await pricingService.orderPrice({customerId,productId,quantity:scenario.quantity});
+      assert.equal(quote.unitPricePaise,scenario.expected);assert.equal(quote.source,scenario.source);
+      const order=await orderService.create({customerId,warehouseId,lines:[{productId,quantity:scenario.quantity}]},admin);
+      assert.equal(order.lines[0].unitPricePaise,quote.unitPricePaise);
+      assert.equal(order.lines[0].customerProductPriceId,scenario.source==="negotiated"?agreement.customerProductPriceId:"");
+      assert.equal(order.lines[0].priceException,false);
+    });
+  }
+  await t.test("latest eligible agreement wins and manual overrides retain approval checks",async()=>{
+    await CustomerPrice.deleteMany({});
+    const older=await CustomerPrice.create({...baseAgreement,minimumQuantity:1,unitPricePaise:4500});
+    await CustomerPrice.create({...baseAgreement,validFrom:new Date(now-30000)});
+    const quote=await pricingService.orderPrice({customerId,productId,quantity:1});
+    assert.equal(quote.unitPricePaise,4500);assert.equal(quote.customerProductPriceId,older.customerProductPriceId);
+    const automatic=await orderService.create({customerId,warehouseId,lines:[{productId,quantity:1}]},admin);
+    assert.equal(automatic.lines[0].unitPricePaise,4500);assert.equal(automatic.lines[0].customerProductPriceId,older.customerProductPriceId);
+    const overridden=await orderService.create({customerId,warehouseId,lines:[{productId,quantity:1,unitPricePaise:4000}]},admin);
+    assert.equal(overridden.lines[0].unitPricePaise,4000);assert.equal(overridden.lines[0].priceException,true);assert.equal(overridden.approvalStatus,"pending");
+  });
+
 });
