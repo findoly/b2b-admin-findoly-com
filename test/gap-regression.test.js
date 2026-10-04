@@ -54,6 +54,15 @@ test("procurement demand is linked through ordered and received states",()=>{
   assert.match(source,/Purchase order closed; remaining incoming stock released/);
 });
 
+test("partial procurement receipts requeue only residual allocation quantity",()=>{
+  const source=read("services/procurement-service.js");
+  assert.match(source,/residualAllocationPayload/);
+  assert.match(source,/const residualQty=quantity-acceptedRemaining/);
+  assert.match(source,/allocation\.quantity=acceptedRemaining/);
+  assert.match(source,/purchaseOrderId:"",status:"planned"/);
+  assert.match(source,/reconcileAllocationReceiptStatus\(po,session,\{finalize:true\}\)/);
+});
+
 test("inventory and sales orders snapshot stock cost for COGS",()=>{
   const Inventory=require("../models/InventoryBalance");
   const Order=require("../models/SalesOrder");
