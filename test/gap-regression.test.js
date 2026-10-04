@@ -122,8 +122,10 @@ test("mutations require an audit intent before business routes execute",()=>{
   assert.match(routes,/r\.use\(apiAuth\);r\.use\(requireMutationAudit\)/);
 });
 
-test("GitHub Actions workflow is intentionally absent while QA scripts remain",()=>{
-  assert.equal(fs.existsSync(path.join(root,".github/workflows/qa.yml")),false);
+test("GitHub Actions production QA workflow is present",()=>{
+  const workflow=read(".github/workflows/qa.yml");
+  assert.match(workflow,/branches: \[prod\]/);
+  assert.match(workflow,/npm run qa:production/);
   const pkg=JSON.parse(read("package.json"));
   assert.ok(pkg.scripts["qa:production"]);
   assert.ok(pkg.scripts["qa:critical"]);
