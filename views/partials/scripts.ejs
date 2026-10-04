@@ -86,11 +86,19 @@
   async function openBusinessAttachment(area,key){const result=await apiFetch('/api/storage/'+area+'/download-url',{method:'POST',body:JSON.stringify({key})});if(!result.data?.url)throw new Error('Download URL was not created');window.open(result.data.url,'_blank','noopener,noreferrer');}
   function attachmentName(key){const part=String(key||'').split('/').pop()||'';return part.replace(/^[a-f0-9]{32}-/,'')||'Document';}
 
+  function joinTruthy(values,separator=' · '){return (Array.isArray(values)?values:[]).filter(Boolean).join(separator);}
+  function reverseCopy(values){return Array.isArray(values)?values.slice().reverse():[];}
+  function moneyFromRupees(value){return money(Math.round(Number(value||0)*100));}
+  function bodyData(name,fallback=''){return document.body?.dataset?.[name]||fallback;}
+  function setSafeHtml(element,html){if(element)element.innerHTML=String(html||'');}
+  function syncMobileDrawer(open){document.documentElement.classList.toggle('crm-mobile-drawer-open',Boolean(open));document.body.classList.toggle('crm-mobile-drawer-open',Boolean(open));}
+
   const CRM_SIDEBAR_COLLAPSED_KEY='leadops.crm.sidebar.collapsed.v1';
   function readSidebarCollapsed(){try{return localStorage.getItem(CRM_SIDEBAR_COLLAPSED_KEY)==='1'}catch(_){return false}}
   function syncSidebarDocumentState(collapsed){document.documentElement.classList.toggle('crm-sidebar-saved-collapsed',Boolean(collapsed));}
   function crmShell(){return{
     admin:window.__crmServerAdmin||{},shellError:'',sidebarOpen:false,sidebarCollapsed:readSidebarCollapsed(),
+    Number,String,Boolean,Math,Date,Array,Object,money,safeDate,formatDate,formatDateOnly,shortDate,humanize,statusClass,showCrmToast,joinTruthy,reverseCopy,moneyFromRupees,bodyData,setSafeHtml,syncMobileDrawer,
     async initShell(){
       syncSidebarDocumentState(this.sidebarCollapsed);
       if(this.admin?.employeeId)return;
@@ -101,4 +109,17 @@
     pathIs(path){return location.pathname===path||location.pathname.startsWith(path+'/');},
     async logout(){try{await apiFetch('/api/auth/logout',{method:'POST',body:'{}'});location.href='/login';}catch(e){this.shellError=e.message;}}
   }}
+
+  document.addEventListener('alpine:init',()=>{
+    const registered=new Set();
+    document.querySelectorAll('[x-data]').forEach(element=>{
+      const expression=String(element.getAttribute('x-data')||'').trim();
+      const match=expression.match(/^([A-Za-z_$][\w$]*)\(\)$/);
+      if(!match)return;
+      const name=match[1],factory=window[name];
+      if(typeof factory!=='function')return;
+      if(!registered.has(name)){Alpine.data(name,factory);registered.add(name);}
+      element.setAttribute('x-data',name);
+    });
+  });
 </script>
