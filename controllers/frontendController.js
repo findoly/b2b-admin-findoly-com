@@ -1,5 +1,9 @@
-function render(view,title,subtitle){return(req,res)=>res.render(view,{title,subtitle});}
+function render(view,title,subtitle){return(req,res)=>res.render(view,{title,subtitle,recordId:req.params.salesOrderId||req.params.purchaseOrderId||req.params.warehouseId||""});}
 module.exports={
+  operationsMap:render("operations-map","Operations map","Customers, warehouses and supplier locations"),
+  categories:render("catalog","Categories","Organize your product catalogue"),
+  subcategories:render("catalog","Subcategories","Specific product groups within a category"),
+  salesInsights:render("sales-insights","Sales insights","Understand demand and invoiced product sales"),
   login:render("login","Sign in","B2B operations access"),
   dashboard:render("dashboard","Dashboard","Distribution operations at a glance"),
   customers:render("customers","Customers","Retailers, wholesalers and business accounts"),

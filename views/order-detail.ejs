@@ -13,14 +13,14 @@
 <div class="card crm-data-card mb-4 crm-order-journey-card">
   <div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Order journey</h2><p class="text-muted mb-0">One timeline shows exactly where the full sales order is now.</p></div><div class="crm-order-current-stage-box"><span>Current stage</span><strong x-text="currentStageLabel()"></strong></div></div>
   <div class="card-body">
-    <div class="crm-order-lifecycle" role="list" aria-label="Order fulfilment journey">
+    <details class="crm-progress-details" open><summary>View all stages</summary><div class="crm-order-lifecycle" role="list" aria-label="Order fulfilment journey">
       <template x-for="(stage,index) in lifecycleStages" :key="stage.label">
         <div class="crm-order-lifecycle-stage" role="listitem" :class="lifecycleStageClass(index)">
           <span class="crm-order-lifecycle-node"><span x-show="index>=lifecycleIndex()" x-text="index+1"></span><span x-show="index<lifecycleIndex()">✓</span></span>
           <div><strong x-text="stage.label"></strong><small x-text="stage.note"></small></div>
         </div>
       </template>
-    </div>
+    </div></details>
     <div class="alert alert-warning mt-3 mb-0" x-show="['procurement_required','procurement_in_progress'].includes(crmValue(order,'status',''))">Some product demand still depends on sourcing or supplier receipts before warehouse fulfilment can continue.</div>
     <div class="alert alert-danger mt-3 mb-0" x-show="crmValue(order,'status','')==='delivery_failed'">Delivery needs attention before the order can continue.</div>
     <div class="alert alert-secondary mt-3 mb-0" x-show="crmValue(order,'status','')==='cancelled'">This order is cancelled and the operational journey is closed.</div>
@@ -38,14 +38,14 @@
           <div><a class="crm-record-title" :href="'/products/'+line.productId" x-text="line.productName"></a><div class="text-muted fs-sm" x-text="line.sku+' · '+line.quantity+' ordered'"></div></div>
           <span class="crm-product-stage-badge" :class="productJourney(line).tone" x-text="productJourney(line).label"></span>
         </div>
-        <div class="crm-product-stage-track" role="list" :aria-label="line.productName+' progress'">
+        <details class="crm-progress-details" open><summary>View product stages</summary><div class="crm-product-stage-track" role="list" :aria-label="line.productName+' progress'">
           <template x-for="(stage,index) in productStages" :key="stage">
             <div class="crm-product-stage" role="listitem" :class="productStageClass(line,index)">
               <span class="crm-product-stage-dot"></span><small x-text="stage"></small>
             </div>
           </template>
         </div>
-        <div class="crm-product-journey-meta">
+        </details><div class="crm-product-journey-meta">
           <span><b x-text="line.stockReservedQty||0"></b> reserved</span>
           <span><b x-text="line.procurementRequiredQty||0"></b> procurement need</span>
           <span><b x-text="allocatedQty(line.salesOrderLineId)"></b> allocated</span>
@@ -57,7 +57,7 @@
   </div>
 </div>
 
-<div class="card crm-data-card mb-4"><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Product demand & source mapping</h2><p class="text-muted mb-0">Supplier allocations stay connected to each sales-order line while the warehouse remains the fulfilment destination.</p></div></div><div class="table-responsive"><table class="table crm-table align-middle mb-0"><thead><tr><th>Product</th><th class="text-end">Ordered</th><th class="text-end">Warehouse reserved</th><th class="text-end">Procurement required</th><th class="text-end">Allocated</th><th>Supplier sources</th></tr></thead><tbody><template x-for="line in crmList(order,'lines')" :key="line.salesOrderLineId"><tr><td><a class="crm-record-title" :href="'/products/'+line.productId" x-text="line.productName"></a><div class="text-muted fs-sm" x-text="line.sku"></div></td><td class="text-end" x-text="line.quantity"></td><td class="text-end" x-text="line.stockReservedQty||0"></td><td class="text-end" x-text="line.procurementRequiredQty||0"></td><td class="text-end" x-text="allocatedQty(line.salesOrderLineId)"></td><td><template x-if="lineAllocations(line.salesOrderLineId).length"><div><template x-for="a in lineAllocations(line.salesOrderLineId)" :key="a.procurementAllocationId"><div class="mb-2"><strong x-text="crmValue(a,'supplierSnapshot.businessName','Supplier')"></strong><div class="text-muted fs-sm"><span x-text="a.quantity+' units'"></span><span> · </span><span x-text="money(a.purchasePricePaise)+' buy price'"></span><span> · </span><span x-text="humanize(a.status)"></span></div></div></template></div></template><span x-show="!lineAllocations(line.salesOrderLineId).length" class="text-muted">Warehouse stock / not yet sourced</span></td></tr></template></tbody></table></div></div>
+<div class="card crm-data-card mb-4"><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Product demand & source mapping</h2><p class="text-muted mb-0">Supplier allocations stay connected to each sales-order line while the warehouse remains the fulfilment destination.</p></div></div><div class="table-responsive"><table class="table crm-table crm-mobile-records align-middle mb-0"><thead><tr><th>Product</th><th class="text-end">Ordered</th><th class="text-end">Warehouse reserved</th><th class="text-end">Procurement required</th><th class="text-end">Allocated</th><th>Supplier sources</th></tr></thead><tbody><template x-for="line in crmList(order,'lines')" :key="line.salesOrderLineId"><tr><td><a class="crm-record-title" :href="'/products/'+line.productId" x-text="line.productName"></a><div class="text-muted fs-sm" x-text="line.sku"></div></td><td class="text-end" x-text="line.quantity"></td><td class="text-end" x-text="line.stockReservedQty||0"></td><td class="text-end" x-text="line.procurementRequiredQty||0"></td><td class="text-end" x-text="allocatedQty(line.salesOrderLineId)"></td><td><template x-if="lineAllocations(line.salesOrderLineId).length"><div><template x-for="a in lineAllocations(line.salesOrderLineId)" :key="a.procurementAllocationId"><div class="mb-2"><strong x-text="crmValue(a,'supplierSnapshot.businessName','Supplier')"></strong><div class="text-muted fs-sm"><span x-text="a.quantity+' units'"></span><span> · </span><span x-text="money(a.purchasePricePaise)+' buy price'"></span><span> · </span><span x-text="humanize(a.status)"></span></div></div></template></div></template><span x-show="!lineAllocations(line.salesOrderLineId).length" class="text-muted">Warehouse stock / not yet sourced</span></td></tr></template></tbody></table></div></div>
 
 <div class="row g-4 mb-4"><div class="col-lg-6"><div class="card crm-data-card h-100"><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Linked purchase orders</h2><p class="text-muted mb-0">Purchase orders generated from this order's supplier allocations.</p></div></div><div class="card-body"><% if (can('procurement.view')) { %><template x-for="po in purchaseOrders" :key="po.purchaseOrderId"><div class="border rounded p-3 mb-2 d-flex justify-content-between gap-3"><div><a class="crm-record-title" :href="'/procurement/'+po.purchaseOrderId" x-text="po.poNumber"></a><div class="text-muted fs-sm" x-text="po.supplierName"></div></div><span class="crm-status" :class="statusClass(po.status)" x-text="humanize(po.status)"></span></div></template><div x-show="!purchaseOrders.length" class="text-muted">No linked purchase order yet.</div><% } else { %><div class="text-muted">Procurement-view permission is required to open purchase orders.</div><% } %></div></div></div><div class="col-lg-6"><div class="card crm-data-card h-100"><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Delivery mapping</h2><p class="text-muted mb-0">Delivery inherits this sales order's warehouse and product lines.</p></div></div><div class="card-body"><% if (can('delivery.view')) { %><template x-for="d in deliveries" :key="d.deliveryAssignmentId"><div class="border rounded p-3 mb-2 d-flex justify-content-between gap-3"><div><a class="crm-record-title" :href="'/delivery/'+d.deliveryAssignmentId" x-text="d.driverName||d.deliveryProviderName||humanize(d.deliveryType)"></a><div class="text-muted fs-sm" x-text="(crmValue(d,'warehouseSnapshot.name',crmValue(order,'warehouseSnapshot.name','Warehouse')))+' · '+(d.lines||[]).length+' SKU(s)'"></div></div><span class="crm-status" :class="statusClass(d.status)" x-text="humanize(d.status)"></span></div></template><div x-show="!deliveries.length" class="text-muted">No delivery assignment yet.</div><% } else { %><div class="text-muted">Delivery-view permission is required to open delivery assignments.</div><% } %></div></div></div></div>
 
@@ -82,13 +82,13 @@ async load(){try{const order=(await apiFetch('/api/orders/'+this.orderId)).data;
 lineAllocations(id){return(this.order?.procurementAllocations||[]).filter(x=>x.salesOrderLineId===id&&x.status!=='cancelled')},
 allocatedQty(id){return this.lineAllocations(id).reduce((s,x)=>s+Number(x.quantity||0),0)},
 addressText(a){return[a?.line1,a?.line2,a?.city,a?.state,a?.pincode].filter(Boolean).join(', ')||'—'},
-cancellable(){return['draft','created','procurement_required','procurement_in_progress','stock_ready','picking','packed','ready_for_dispatch'].includes(this.crmValue(order,'status',''))},
+cancellable(){return['draft','created','procurement_required','procurement_in_progress','stock_ready','picking','packed','ready_for_dispatch'].includes(this.crmValue(this.order,'status',''))},
 lifecycleIndex(){
   const map={draft:0,created:0,procurement_required:1,procurement_in_progress:1,stock_ready:2,picking:3,packed:4,ready_for_dispatch:5,assigned_for_delivery:6,out_for_delivery:6,delivery_failed:6,partially_delivered:6,returned:6,delivered:7,cancelled:0};
-  return map[this.crmValue(order,'status','')]??0;
+  return map[this.crmValue(this.order,'status','')]??0;
 },
 lifecycleStageClass(index){
-  const current=this.lifecycleIndex(),status=this.crmValue(order,'status','');
+  const current=this.lifecycleIndex(),status=this.crmValue(this.order,'status','');
   if(status==='cancelled')return index===0?'is-stopped':'is-upcoming';
   if(status==='delivered'&&index<=current)return'is-complete is-finished';
   if(index<current)return'is-complete';
@@ -96,7 +96,7 @@ lifecycleStageClass(index){
   return'is-upcoming';
 },
 currentStageLabel(){
-  const status=this.crmValue(order,'status','');
+  const status=this.crmValue(this.order,'status','');
   if(status==='procurement_required')return'Procurement required';
   if(status==='procurement_in_progress')return'Procurement in progress';
   if(status==='assigned_for_delivery')return'Delivery assigned';
@@ -112,7 +112,7 @@ deliveryProgress(line){
   return{delivered,returned,statuses};
 },
 productJourney(line){
-  const status=this.crmValue(order,'status',''),required=Number(line.procurementRequiredQty||0),allocated=this.allocatedQty(line.salesOrderLineId),progress=this.deliveryProgress(line),qty=Number(line.quantity||0);
+  const status=this.crmValue(this.order,'status',''),required=Number(line.procurementRequiredQty||0),allocated=this.allocatedQty(line.salesOrderLineId),progress=this.deliveryProgress(line),qty=Number(line.quantity||0);
   if(status==='cancelled')return{index:0,label:'Cancelled',tone:'is-muted'};
   if(status==='returned'||progress.returned>=qty&&qty>0)return{index:6,label:'Returned',tone:'is-attention'};
   if(status==='delivered'||progress.delivered>=qty&&qty>0)return{index:7,label:'Delivered',tone:'is-success'};

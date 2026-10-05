@@ -57,7 +57,7 @@ async function fail(id,body,status){
 async function requireMutationIdempotency(req,res,next){
   if(SAFE_METHODS.has(req.method)||!req.admin)return next();
   const requestPath=String(req.originalUrl||req.url||"").split("?")[0];
-  if(/\/(?:upload-url|download-url)$/.test(requestPath))return next();
+  if(/\/(?:upload-url|download-url)$/.test(requestPath)||requestPath==="/api/map/geocode")return next();
   const key=String(req.get("idempotency-key")||"").trim();
   if(!key)return next();
   if(!KEY_PATTERN.test(key))return errorResponse(res,400,"IDEMPOTENCY_KEY_INVALID","Idempotency-Key must be 16 to 128 letters, numbers, dots, colons, underscores or hyphens.");
