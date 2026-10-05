@@ -8,6 +8,9 @@ Included:
 - Dashboard and operational attention metrics.
 - Retailer/wholesaler/distributor customer management, multiple delivery addresses, assigned sales employee, credit terms/limit and customer portal access.
 - Product/SKU catalogue with brand/category/manufacturer, HSN/GST, MRP, reference selling price, minimum permitted selling price, reorder level, multiple photos and documents in S3.
+- Managed product categories and parent-bound subcategories; product assignments use named IDs.
+- Sales insights by category, subcategory and SKU with distinct order/invoice counts.
+- Google Maps for manually entered customer, supplier-location and warehouse addresses, reviewed geocoding and manual coordinate entry.
 - Supplier management, supplier documents and multiple supplier locations.
 - Many-to-many Supplier + Supplier Location + Product offers with buy price, GST charged, GST rate, MOQ, pack quantity, lead time, validity and purchase-price history.
 - Customer-specific negotiated SKU prices with effective dates and approval workflow.

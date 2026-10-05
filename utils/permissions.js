@@ -2,6 +2,7 @@ const PERMISSION_GROUPS = Object.freeze([
   ["dashboard", ["dashboard.view"]],
   ["customers", ["customers.view", "customers.create", "customers.edit", "customers.credit"]],
   ["products", ["products.view", "products.create", "products.edit", "products.media"]],
+  ["catalogue", ["categories.manage"]],
   ["suppliers", ["suppliers.view", "suppliers.create", "suppliers.edit", "suppliers.pricing"]],
   ["pricing", ["pricing.view", "pricing.manage", "pricing.approve"]],
   ["procurement", ["procurement.view", "procurement.create", "procurement.approve", "procurement.receive"]],

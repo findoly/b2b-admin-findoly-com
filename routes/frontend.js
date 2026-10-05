@@ -1,6 +1,6 @@
 const r=require("express").Router();
 const p=require("../controllers/frontendController");
-const {pageAuth,guestOnly,requirePermission}=require("../middleware/auth");
+const {pageAuth,guestOnly,requirePermission,requireAnyPermission}=require("../middleware/auth");
 r.get("/login",guestOnly,p.login);
 r.get("/",(req,res)=>res.redirect(req.admin?"/dashboard":"/login"));
 r.get("/dashboard",pageAuth,requirePermission("dashboard.view"),p.dashboard);
@@ -43,4 +43,8 @@ r.get("/roles",pageAuth,requirePermission("roles.view"),p.roles);
 r.get("/storage",pageAuth,requirePermission("storage.view"),p.storage);
 r.get("/audit",pageAuth,requirePermission("audit.view"),p.audit);
 r.get("/invoices/:invoiceId",pageAuth,requirePermission("finance.view"),p.invoice);
+r.get("/categories",pageAuth,requirePermission("products.view"),p.categories);
+r.get("/subcategories",pageAuth,requirePermission("products.view"),p.subcategories);
+r.get("/sales-insights",pageAuth,requirePermission("reports.view"),p.salesInsights);
+r.get("/operations-map",pageAuth,requireAnyPermission("customers.view","inventory.view","suppliers.view"),require("../middleware/map-security"),p.operationsMap);
 module.exports=r;

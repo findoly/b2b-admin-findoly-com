@@ -10,6 +10,9 @@
 | `b2bcustomers` | `customerId` |
 | `b2bcustomerusers` | `customerUserId` |
 | `b2bproducts` | `productId` |
+| `b2bcategories` | `categoryId` |
+| `b2bsubcategories` | `subcategoryId` |
+| `b2bmaplocations` | `mapLocationId` |
 | `b2bsuppliers` | `supplierId` |
 | `b2bsupplierlocations` | `supplierLocationId` |
 | `b2bsupplierproductoffers` | `supplierProductOfferId` |
