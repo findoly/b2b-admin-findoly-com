@@ -69,7 +69,7 @@ test("login registers its Alpine provider for the CSP build without loading Alpi
   const head=fs.readFileSync(path.join(root,"views/partials/head.ejs"),"utf8");
   assert.match(login,/x-data="loginPage"/);
   assert.doesNotMatch(login,/x-data="loginPage\\(\\)"/);
-  assert.match(login,/document\\.addEventListener\\('alpine:init',[\\s\\S]*Alpine\\.data\\('loginPage',loginPage\\)/);
+  assert.ok(login.includes("document.addEventListener('alpine:init',()=>Alpine.data('loginPage',loginPage),{once:true});"));
   assert.doesNotMatch(login,/<script[^>]+src="\\/vendor\\/alpinejs\\/cdn\\.min\\.js/);
   assert.match(head,/<script src="\\/vendor\\/alpinejs\\/cdn\\.min\\.js\\?v=3\\.15\\.12" defer><\\/script>/);
   assert.match(login,/x-show="error" x-cloak class="alert alert-danger"/);
