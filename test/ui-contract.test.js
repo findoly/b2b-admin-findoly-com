@@ -67,13 +67,13 @@ test("CRM runtime loads local Alpine first and only reports a real runtime failu
 test("login registers its Alpine provider for the CSP build without loading Alpine twice",()=>{
   const login=fs.readFileSync(path.join(root,"views/login.ejs"),"utf8");
   const head=fs.readFileSync(path.join(root,"views/partials/head.ejs"),"utf8");
-  assert.match(login,/x-data="loginPage"/);
-  assert.doesNotMatch(login,/x-data="loginPage\\(\\)"/);
+  assert.ok(login.includes('x-data="loginPage"'));
+  assert.ok(!login.includes('x-data="loginPage()"'));
   assert.ok(login.includes("document.addEventListener('alpine:init',()=>Alpine.data('loginPage',loginPage),{once:true});"));
-  assert.doesNotMatch(login,/<script[^>]+src="\\/vendor\\/alpinejs\\/cdn\\.min\\.js/);
-  assert.match(head,/<script src="\\/vendor\\/alpinejs\\/cdn\\.min\\.js\\?v=3\\.15\\.12" defer><\\/script>/);
-  assert.match(login,/x-show="error" x-cloak class="alert alert-danger"/);
-  assert.match(login,/x-show="message" x-cloak class="alert alert-success"/);
+  assert.ok(!login.includes('<script defer src="/vendor/alpinejs/cdn.min.js"></script>'));
+  assert.ok(head.includes('<script src="/vendor/alpinejs/cdn.min.js?v=3.15.12" defer></script>'));
+  assert.ok(login.includes('x-show="error" x-cloak class="alert alert-danger"'));
+  assert.ok(login.includes('x-show="message" x-cloak class="alert alert-success"'));
 });
 
 test("admin shell uses Alpine CSP build without unsafe-eval",()=>{
