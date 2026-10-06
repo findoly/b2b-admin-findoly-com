@@ -119,3 +119,6 @@ test('sales-order price lookup requires order creation permission, not pricing-m
   const allowed=await request(app).get(endpoint).set('Cookie',authCookie(['orders.create']));
   assert.equal(allowed.status,400);assert.equal(allowed.body.code,'VALIDATION_ERROR');
 });
+
+test("customer product mapping endpoints are permission protected",async()=>{const customerId="a".repeat(32),mappingId="b".repeat(32);const [list,create,update]=await Promise.all([request(app).get(`/api/customers/${customerId}/products`),request(app).post(`/api/customers/${customerId}/products`).send({productId:"c".repeat(32)}),request(app).put(`/api/customers/${customerId}/products/${mappingId}`).send({active:false})]);assert.equal(list.status,401);assert.equal(create.status,401);assert.equal(update.status,401);});
+test("mapping mutation requires customer edit permission",async()=>{const customerId="a".repeat(32);const r=await request(app).post(`/api/customers/${customerId}/products`).set(mutationHeaders(["customers.view"])).send({productId:"c".repeat(32)});assert.equal(r.status,403);});
