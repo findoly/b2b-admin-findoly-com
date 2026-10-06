@@ -127,7 +127,11 @@ async loadCustomerProducts(query='',restore=false){
     const suffix=query?'?search='+encodeURIComponent(query):'';
     const items=(await apiFetch('/api/customers/'+customerId+'/products'+suffix,{signal:controller.signal})).data.items||[];
     if(controller.signal.aborted||this.productAbort!==controller)return;
-    this.products=items;
+    if(query){
+      const selectedIds=new Set(this.form.lines.map(line=>line.productId).filter(Boolean));
+      const retained=this.products.filter(product=>selectedIds.has(product.productId)&&!items.some(x=>x.productId===product.productId));
+      this.products=[...retained,...items];
+    }else this.products=items;
     if(restore){
       const validIds=new Set(items.map(p=>p.productId));
       for(const line of this.form.lines)if(line.productId&&!validIds.has(line.productId)){line.productId='';line.unitPriceRupees='';line.priceMode='auto';line.priceSource='';line.priceError='';}
