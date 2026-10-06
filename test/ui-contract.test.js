@@ -64,6 +64,18 @@ test("CRM runtime loads local Alpine first and only reports a real runtime failu
 });
 
 
+test("login registers its Alpine provider for the CSP build without loading Alpine twice",()=>{
+  const login=fs.readFileSync(path.join(root,"views/login.ejs"),"utf8");
+  const head=fs.readFileSync(path.join(root,"views/partials/head.ejs"),"utf8");
+  assert.match(login,/x-data="loginPage"/);
+  assert.doesNotMatch(login,/x-data="loginPage\\(\\)"/);
+  assert.match(login,/document\\.addEventListener\\('alpine:init',[\\s\\S]*Alpine\\.data\\('loginPage',loginPage\\)/);
+  assert.doesNotMatch(login,/<script[^>]+src="\\/vendor\\/alpinejs\\/cdn\\.min\\.js/);
+  assert.match(head,/<script src="\\/vendor\\/alpinejs\\/cdn\\.min\\.js\\?v=3\\.15\\.12" defer><\\/script>/);
+  assert.match(login,/x-show="error" x-cloak class="alert alert-danger"/);
+  assert.match(login,/x-show="message" x-cloak class="alert alert-success"/);
+});
+
 test("admin shell uses Alpine CSP build without unsafe-eval",()=>{
   const app=fs.readFileSync(path.join(root,"app.js"),"utf8");
   const pkg=JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8"));
