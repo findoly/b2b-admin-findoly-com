@@ -18,6 +18,7 @@
 | `b2bsupplierproductoffers` | `supplierProductOfferId` |
 | `b2bpurchasepricehistory` | `purchasePriceHistoryId` |
 | `b2bcustomerproductprices` | `customerProductPriceId` |
+| `b2bcustomerproductmappings` | `customerProductMappingId` |
 | `b2bwarehouses` | `warehouseId` |
 | `b2binventorybalances` | `inventoryBalanceId` |
 | `b2binventorymovements` | `inventoryMovementId` |
