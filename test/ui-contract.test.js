@@ -168,3 +168,37 @@ test("product management uses dedicated HTML and gallery pages",()=>{
   assert.match(detail,/Photo gallery/);
   assert.match(detail,/setSafeHtml\(\$el, crmValue\(product,'descriptionHtml',''\)\)/);
 });
+
+test("B2B appearance panel exposes the complete Findoly CRM theme set",()=>{
+  const navbar=fs.readFileSync(path.join(root,"views/partials/navbar.ejs"),"utf8");
+  const presets=["facebookLight","whiteBlack","linkedin","tealProfessional","whatsapp","practo","slack","fiverr","amazon","flipkart","google","softBlue","softGreen","softPurple","softPeach","softGrey","softOrange"];
+  for(const preset of presets) assert.match(navbar,new RegExp('data-appearance-preset="'+preset+'"'),preset);
+});
+
+test("core B2B list screens use the CRM filter and data-card hierarchy",()=>{
+  const pages=["customers.ejs","products.ejs","orders.ejs","suppliers.ejs","inventory.ejs","procurement.ejs","delivery.ejs","employees.ejs","pricing.ejs","reports.ejs"];
+  for(const page of pages){
+    const source=fs.readFileSync(path.join(root,"views",page),"utf8");
+    assert.match(source,/crm-filter-card/,page);
+    assert.match(source,/crm-filter-bar/,page);
+    assert.match(source,/crm-data-card/,page);
+    assert.match(source,/crm-card-heading/,page);
+  }
+});
+
+test("catalogue analytics and map surfaces stay inside the Findoly CRM visual system",()=>{
+  const catalog=fs.readFileSync(path.join(root,"views/catalog.ejs"),"utf8");
+  const insights=fs.readFileSync(path.join(root,"views/sales-insights.ejs"),"utf8");
+  const map=fs.readFileSync(path.join(root,"views/operations-map.ejs"),"utf8");
+  assert.match(catalog,/crm-filter-card/);
+  assert.match(catalog,/crm-data-card/);
+  assert.match(catalog,/crm-card-heading/);
+  assert.match(insights,/crm-filter-card/);
+  assert.match(insights,/crm-metric-grid/);
+  assert.match(insights,/crm-data-card/);
+  assert.match(insights,/crm-card-heading/);
+  assert.match(map,/crm-filter-card/);
+  assert.match(map,/crm-data-card/);
+  assert.match(map,/crm-map-layout/);
+});
+
