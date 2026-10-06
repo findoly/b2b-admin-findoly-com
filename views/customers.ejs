@@ -40,8 +40,15 @@
   </div>
 </div>
 
+<section class="card crm-filter-card mb-3">
+  <div class="crm-filter-bar">
+    <div class="crm-search-control"><input class="form-control" placeholder="Search business, contact, mobile or GSTIN" x-model="search" @keyup.enter="searchCustomers()"></div>
+    <label class="crm-filter-field"><span>Status</span><select x-model="statusFilter" @change="searchCustomers()"><option value="">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="blocked">Blocked</option></select></label>
+    <div class="crm-filter-actions"><button class="btn btn-primary" @click="searchCustomers()">Search</button></div>
+  </div>
+</section>
 <div class="card crm-data-card mb-4">
-  <div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Customer accounts</h2><p class="text-muted mb-0">Search and open the complete customer record.</p></div><div class="d-flex gap-2"><input class="form-control form-control-sm" placeholder="Search business, contact, mobile or GSTIN" x-model="search" @keyup.enter="searchCustomers()"><select class="form-select form-select-sm" x-model="statusFilter" @change="searchCustomers()"><option value="">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="blocked">Blocked</option></select><button class="btn btn-light btn-sm" @click="searchCustomers()">Search</button></div></div>
+  <div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Customer accounts</h2><p class="text-muted mb-0">Search and open the complete customer record.</p></div></div>
   <div class="table-responsive"><table class="table crm-table crm-mobile-records align-middle mb-0"><thead><tr><th>Customer</th><th>Contact</th><th>Assigned</th><th>Terms</th><th>Credit</th><th>Portal</th><th>Status</th><th class="text-end">Actions</th></tr></thead><tbody>
     <template x-for="c in items" :key="c.customerId"><tr><td><strong x-text="c.businessName"></strong><div class="text-muted fs-sm" x-text="humanize(c.customerType)"></div></td><td><span x-text="c.contactName"></span><div class="text-muted fs-sm" x-text="c.mobile"></div></td><td x-text="assigneeName(c.assignedEmployeeId)"></td><td x-text="(c.paymentTermDays||0)+' days'"></td><td><span x-text="money(c.creditLimitPaise)"></span><div class="text-danger fs-sm" x-show="c.creditHold">Credit hold</div></td><td><span class="crm-status" :class="c.portalAccessEnabled?'status-paid':'status-pending'" x-text="c.portalAccessEnabled?'Enabled':'Disabled'"></span></td><td><span class="crm-status" :class="statusClass(c.status)" x-text="humanize(c.status)"></span></td><td class="text-end crm-table-actions"><button class="btn btn-sm btn-outline-primary" @click="open360(c)">360°</button><% if (can('customers.edit')) { %><button class="btn btn-sm btn-light" @click="edit(c)">Edit</button><% } %></td></tr></template>
     <tr x-show="!loading && !items.length"><td colspan="8"><div class="crm-empty-state"><strong>No customers found</strong></div></td></tr>
