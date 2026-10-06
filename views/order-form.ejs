@@ -29,7 +29,8 @@
   <div class="text-end mt-4"><button class="btn btn-primary" type="button" @click="next()">Continue</button></div>
 </div></div>
 
-<div class="card crm-data-card" x-show="step===2" x-cloak><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">2. Products & selling price</h2><p class="text-muted mb-0">Choose products and quantities first. Warehouse availability is calculated from this demand.</p></div><div class="d-flex gap-2"><label class="visually-hidden" for="product-search">Search products</label><input id="product-search" class="form-control form-control-sm" placeholder="Search products" x-model="productSearch" @input.debounce.300ms="searchProducts()" @keyup.enter="searchProducts()"><button class="btn btn-light btn-sm" type="button" @click="searchProducts()">Find</button><button class="btn btn-light btn-sm" type="button" @click="addLine()">Add product</button></div></div>
+<div class="card crm-data-card" x-show="step===2" x-cloak><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">2. Products & selling price</h2><p class="text-muted mb-0">Only products mapped to this customer are available. Negotiated pricing is applied automatically when eligible.</p></div><div class="d-flex gap-2"><label class="visually-hidden" for="product-search">Search mapped products</label><input id="product-search" class="form-control form-control-sm" placeholder="Search mapped products" x-model="productSearch" @input.debounce.300ms="searchProducts()" @keyup.enter="searchProducts()"><button class="btn btn-light btn-sm" type="button" @click="searchProducts()">Find</button><button class="btn btn-light btn-sm" type="button" @click="addLine()" :disabled="!products.length">Add product</button></div></div>
+  <div class="alert alert-warning m-3 mb-0" x-show="form.customerId && !products.length">No active products are mapped to this customer. Map products from the customer 360° view before creating an order.</div>
   <div class="table-responsive"><table class="table crm-table align-middle mb-0"><thead><tr><th>Product</th><th>Manufacturer</th><th style="width:120px">Qty</th><th style="width:180px">Agreed price ₹</th><th style="width:55px"></th></tr></thead><tbody><template x-for="(line,index) in form.lines" :key="line.key"><tr><td><select class="form-select" x-model="line.productId" @change="productChanged(line)"><option value="">Select product</option><template x-for="p in products" :key="p.productId"><option :value="p.productId" x-text="p.name+' · '+p.sku"></option></template></select></td><td x-text="crmValue(product(line.productId),'manufacturer','—')"></td><td><input type="number" min="1" class="form-control" x-model.number="line.quantity" @input="quantityChanged(line)"></td><td><input type="number" min="0" step="0.01" class="form-control" placeholder="Auto" aria-label="Agreed unit price in rupees" x-model="line.unitPriceRupees" @input="priceEdited(line)"><div class="text-muted fs-sm" x-show="product(line.productId)" x-text="'Reference '+money(crmValue(product(line.productId),'referenceSellingPricePaise',0))"></div><div class="fs-sm mt-1" aria-live="polite" x-text="priceLabel(line)"></div><div x-show="line.priceError" class="text-danger fs-sm" role="alert"><span x-text="line.priceError"></span> <button class="btn btn-link btn-sm p-0" type="button" @click="refreshLinePrice(line)">Retry price</button></div><button x-show="line.priceMode==='manual'" class="btn btn-link btn-sm p-0" type="button" @click="refreshLinePrice(line,true)">Use customer price</button></td><td><button class="btn btn-light btn-sm" type="button" @click="removeLine(index)" :disabled="form.lines.length===1">×</button></td></tr></template></tbody></table></div>
   <div class="d-flex justify-content-between p-3"><button class="btn btn-light" type="button" @click="go(1)">Back</button><button class="btn btn-primary" type="button" @click="next()" :disabled="warehouseAvailabilityLoading||pricingPending" x-text="warehouseAvailabilityLoading?'Checking stock…':'Continue'"></button></div>
 </div>
@@ -98,10 +99,11 @@ clearDraft(){clearTimeout(this.draftTimer);this.draftTimer=null;try{sessionStora
 async load(){
   this.form.lines=[this.newLine()];
   try{
-    const[c,p]=await Promise.all([apiFetch('/api/customers?limit=50'),apiFetch('/api/products?limit=50')]);
-    this.customers=c.data.items||[];this.products=p.data.items||[];
+    const c=await apiFetch('/api/customers?limit=50');
+    this.customers=c.data.items||[];this.products=[];
     this.restoreDraft();
     for(const line of this.form.lines){line.key=line.key||crypto.randomUUID();line.priceMode=line.priceMode||(String(line.unitPriceRupees??'')===''?'auto':'manual');line.priceLoading=false;line.priceError='';}
+    if(this.form.customerId)await this.loadCustomerProducts('',true);
     await Promise.all(this.form.lines.map(line=>this.refreshLinePrice(line)));
     this.$watch('form',()=>this.scheduleDraftSave());
   }catch(e){this.error=e.message}
@@ -117,21 +119,36 @@ async searchCustomers(){
     this.customers=selected&&!items.some(x=>x.customerId===selected.customerId)?[selected,...items]:items;
   }catch(e){if(!controller.signal.aborted&&this.customerAbort===controller&&e.name!=='AbortError')this.error=e.message}
 },
-async searchProducts(){
+async loadCustomerProducts(query='',restore=false){
+  const customerId=this.form.customerId;if(!customerId){this.products=[];return}
   this.productAbort?.abort();
   const controller=new AbortController();this.productAbort=controller;
-  const query=this.productSearch.trim();if(query.length<2)return;
   try{
-    const items=(await apiFetch('/api/products?limit=25&search='+encodeURIComponent(query),{signal:controller.signal})).data.items||[];
+    const suffix=query?'?search='+encodeURIComponent(query):'';
+    const items=(await apiFetch('/api/customers/'+customerId+'/products'+suffix,{signal:controller.signal})).data.items||[];
     if(controller.signal.aborted||this.productAbort!==controller)return;
-    const selectedIds=new Set(this.form.lines.map(line=>line.productId));
-    const retained=this.products.filter(product=>selectedIds.has(product.productId)&&!items.some(x=>x.productId===product.productId));
-    this.products=[...retained,...items];
+    if(query){
+      const selectedIds=new Set(this.form.lines.map(line=>line.productId).filter(Boolean));
+      const retained=this.products.filter(product=>selectedIds.has(product.productId)&&!items.some(x=>x.productId===product.productId));
+      this.products=[...retained,...items];
+    }else this.products=items;
+    if(restore){
+      const validIds=new Set(items.map(p=>p.productId));
+      for(const line of this.form.lines)if(line.productId&&!validIds.has(line.productId)){line.productId='';line.unitPriceRupees='';line.priceMode='auto';line.priceSource='';line.priceError='';}
+    }
   }catch(e){if(!controller.signal.aborted&&this.productAbort===controller&&e.name!=='AbortError')this.error=e.message}
+},
+async searchProducts(){
+  const query=this.productSearch.trim();
+  if(!this.form.customerId){this.products=[];return}
+  if(query.length>0&&query.length<2)return;
+  await this.loadCustomerProducts(query);
 },
 async customerChanged(){
   if(this.selectedCustomer)this.form.paymentTermDays=Number(this.selectedCustomer.paymentTermDays||0);
-  await Promise.all(this.form.lines.map(line=>this.refreshLinePrice(line,true)));
+  for(const controller of Object.values(this.priceRequests))controller?.abort();this.priceRequests={};
+  this.form.lines=[this.newLine()];this.products=[];this.productSearch='';this.productsChanged();
+  await this.loadCustomerProducts();
 },
 productChanged(line){this.productsChanged();return this.refreshLinePrice(line,true)},
 quantityChanged(line){this.productsChanged();return this.refreshLinePrice(line)},

@@ -12,6 +12,7 @@ const orderService=require("../services/order-service");
 const uuid=require("../utils/uuid");
 const Employee=require("../models/Employee");
 const CustomerPrice=require("../models/CustomerProductPrice");
+const CustomerProductMapping=require("../models/CustomerProductMapping");
 const pricingService=require("../services/pricing-service");
 
 test("order confirmation reserves stock inside a real Mongo transaction",async(t)=>{
@@ -33,6 +34,7 @@ test("order confirmation reserves stock inside a real Mongo transaction",async(t
     creditHold:false
   });
   await Product.create({productId,sku:"TXN-SKU",name:"Test Product",referenceSellingPricePaise:5000,minimumSellingPricePaise:0});
+  await CustomerProductMapping.create({customerId,productId,active:true,createdBy:actor,updatedBy:actor});
   await Warehouse.insertMany([
     {warehouseId,name:"Transaction Test Warehouse",code:"TXN"},
     {warehouseId:secondaryWarehouseId,name:"Transaction Low Stock Warehouse",code:"TXL"}
