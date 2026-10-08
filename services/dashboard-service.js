@@ -4,7 +4,7 @@ async function lowStock(){const[products,stockRows]=await Promise.all([Product.f
 async function salesTrend(now=new Date()){
  const indianDay=new Date(now.getTime()+330*60000).toISOString().slice(0,10);
  const start=new Date(indianDay+"T00:00:00+05:30");start.setUTCDate(start.getUTCDate()-13);
- const days=Array.from({length:14},(_,i)=>{const d=new Date(start);d.setUTCDate(d.getUTCDate()+i);return d.toISOString().slice(0,10)});
+ const days=Array.from({length:14},(_,i)=>{const d=new Date(start);d.setUTCDate(d.getUTCDate()+i);return new Date(d.getTime()+330*60000).toISOString().slice(0,10)});
  const end=new Date(indianDay+"T00:00:00+05:30");end.setUTCDate(end.getUTCDate()+1);
  const rows=await SalesOrder.aggregate([{$match:{createdAt:{$gte:start,$lt:end},status:{$nin:["draft","cancelled"]},orderType:{$ne:"replacement"}}},{$group:{_id:{$dateToString:{format:"%Y-%m-%d",date:"$createdAt",timezone:"Asia/Kolkata"}},salesPaise:{$sum:{$ifNull:["$taxablePaise",0]}},orders:{$sum:1}}},{$sort:{_id:1}}]).option({maxTimeMS:15000});
  const byDay=new Map(rows.map(r=>[r._id,r]));return days.map(day=>({day,label:day.slice(5),salesPaise:Number(byDay.get(day)?.salesPaise||0),orders:Number(byDay.get(day)?.orders||0)}));

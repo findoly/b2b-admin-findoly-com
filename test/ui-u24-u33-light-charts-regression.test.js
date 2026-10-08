@@ -17,6 +17,14 @@ test("U31: receivables aging uses issued outstanding invoice money and separate 
  const s=read("services/finance-service.js"),view=read("views/finance.ejs");for(const val of ["async function receivableAging","outstandingPaise:{$gt:0}","status:\"issued\"","undated","61+","amountPaise","maxTimeMS:15000"])assert.ok(s.includes(val),val);assert.match(view,/agingBar\(item,index\)/);assert.match(view,/receivableAging: \[\]|receivableAging:\[\]/);assert.match(view,/#finance-invoices/);
 });
 test("U30/U33: inventory explicitly confines derived stock visuals to current page",()=>{
- const s=read("views/inventory.ejs");assert.match(s,/Only the/);assert.match(s,/loaded balance records/);assert.match(s,/this\.balances\.reduce/);assert.match(s,/zeroAvailable\(\)/);assert.match(s,/this\.balances\.filter/);
+ const s=read("views/inventory.ejs");assert.match(s,/Only the/);assert.match(s,/loaded balance records/);assert.match(s,/this\.balances\.reduce/);assert.match(s,/zeroAvailable\(\)/);assert.match(s,/this\.balances\.filter/);assert.match(s,/can\('products.view'\)/);
  const style=read("public/css/b2b-workspace.css"),head=read("views/partials/head.ejs");assert.match(style,/\.crm-visual-grid/);assert.match(style,/@media\(max-width:575\.98px\)/);assert.match(style,/:focus-visible/);assert.match(head,/u24-u33-light-charts/);assert.doesNotMatch(head,/chart\.js|recharts|echarts/i);
+});
+
+test("U29: sales trends use exact local IST day labels, not UTC labels",async()=>{
+ const vm=require("node:vm"),source=read("services/dashboard-service.js"),orders={aggregate:()=>({option:async()=>[]})};
+ const context={module:{exports:{}},Date,Number,Map,Array,require:()=>orders};
+ vm.runInNewContext(source,context,{filename:"services/dashboard-service.js"});
+ const days=await context.module.exports.salesTrend(new Date("2026-10-09T10:00:00.000Z"));
+ assert.equal(days.length,14);assert.equal(days[0].day,"2026-09-26");assert.equal(days[13].day,"2026-10-09");
 });

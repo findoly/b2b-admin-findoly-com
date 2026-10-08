@@ -109,12 +109,12 @@
       </div>
     </div>
     <script nonce="<%= cspNonce %>">
-      const palette=['#3478d4','#32a17b','#8766c7','#e49a47','#de6b72'];
+      const crmDashboardChartPalette=['#3478d4','#32a17b','#8766c7','#e49a47','#de6b72'];
 function dashboardPage(){return{data:{},loading:true,error:'',number(v){return new Intl.NumberFormat('en-IN').format(Number(v||0));},
 dailySalesLabel(day){return day.day+': '+money(day.salesPaise)+' in '+this.number(day.orders)+' orders';},
 dailyBarStyle(day){const max=Math.max(1,...(this.data.salesTrend||[]).map(x=>Number(x.salesPaise||0)));return 'height:'+Math.max(day.salesPaise>0?4:0,Math.min(100,Math.max(0,Number(day.salesPaise||0))/max*100))+'%;';},
 orderStatusTotal(){return(this.data.orderStatusMix||[]).reduce((n,x)=>n+Number(x.count||0),0);},
-orderStatusSlices(){const rows=(this.data.orderStatusMix||[]).filter(x=>Number(x.count)>0),total=this.orderStatusTotal()||1,top=rows.slice(0,4).map(x=>({status:x.status,label:humanize(x.status),count:Number(x.count)}));if(rows.length>4)top.push({status:'other',label:'Other statuses',count:rows.slice(4).reduce((n,x)=>n+Number(x.count||0),0)});return top.map((x,i)=>({...x,color:palette[i],dotStyle:'background-color:'+palette[i],percent:Math.round(x.count/total*100),href:x.status==='other'?'':'/orders?status='+encodeURIComponent(x.status),actionLabel:'View '+x.label+' orders'}));},
+orderStatusSlices(){const rows=(this.data.orderStatusMix||[]).filter(x=>Number(x.count)>0),total=this.orderStatusTotal()||1,top=rows.slice(0,4).map(x=>({status:x.status,label:humanize(x.status),count:Number(x.count)}));if(rows.length>4)top.push({status:'other',label:'Other statuses',count:rows.slice(4).reduce((n,x)=>n+Number(x.count||0),0)});return top.map((x,i)=>({...x,color:crmDashboardChartPalette[i],dotStyle:'background-color:'+crmDashboardChartPalette[i],percent:Math.round(x.count/total*100),href:x.status==='other'?'':'/orders?status='+encodeURIComponent(x.status),actionLabel:'View '+x.label+' orders'}));},
 orderDonutStyle(){const slices=this.orderStatusSlices(),sum=this.orderStatusTotal();if(!sum)return 'background:var(--crm-chart-track,#edf1f5)';let offset=0;const pieces=slices.map(x=>{const a=offset;offset+=x.count/sum*100;return x.color+' '+a+'% '+offset+'%'});return 'background:conic-gradient('+pieces.join(',')+')';},
 orderDonutLabel(){return this.number(this.orderStatusTotal())+' orders by status';},
 async load(){this.loading=true;this.error='';try{this.data=(await apiFetch('/api/dashboard')).data||{};}catch(e){this.error=e.message;}finally{this.loading=false;}}}}
