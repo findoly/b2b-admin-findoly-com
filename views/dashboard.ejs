@@ -15,7 +15,7 @@
                 <p class="crm-page-subtitle mb-0">Monitor B2B orders, procurement, dispatch, receivables and payables.</p>
               </div>
               <% if (can('orders.create')) { %>
-                <a href="/orders" class="btn btn-primary crm-primary-action">
+                <a href="/orders/new" class="btn btn-primary crm-primary-action">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
                   Create sales order
                 </a>
@@ -65,7 +65,7 @@
                         <template x-if="loading"><tr><td colspan="5"><div class="crm-table-loading"><span></span><span></span><span></span></div></td></tr></template>
                         <template x-for="order in (data.recentOrders || [])" :key="order.salesOrderId">
                           <tr>
-                            <td><a class="crm-record-title" href="/orders" x-text="order.orderNumber"></a><div class="crm-record-id" x-text="order.salesOrderId"></div></td>
+                            <td><a class="crm-record-title"  :href="'/orders/'+order.salesOrderId" x-text="order.orderNumber"></a></td>
                             <td><div class="fw-semibold" x-text="crmValue(order,'customerSnapshot.businessName','—')"></div><div class="text-muted fs-sm" x-text="crmValue(order,'customerSnapshot.mobile','')"></div></td>
                             <td><span class="crm-status" :class="statusClass(order.status)" x-text="humanize(order.status)"></span></td>
                             <td class="text-end fw-semibold" x-text="money(order.totalPaise)"></td>
@@ -80,10 +80,10 @@
                 <aside class="card crm-quick-card">
                   <div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Quick actions</h2><p class="text-muted mb-0">Common B2B operations.</p></div></div>
                   <div class="crm-quick-actions">
-                    <a href="/orders"><span><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span><div><strong>Create sales order</strong><small>Record a customer order</small></div><b>›</b></a>
-                    <a href="/procurement"><span><svg viewBox="0 0 24 24"><path d="M4 7h16l-2 12H6L4 7Z"/></svg></span><div><strong>Open procurement</strong><small>Purchase and receive stock</small></div><b>›</b></a>
-                    <a href="/inventory"><span><svg viewBox="0 0 24 24"><path d="M4 6h16v14H4zM4 10h16"/></svg></span><div><strong>Review inventory</strong><small>Check warehouse stock</small></div><b>›</b></a>
-                    <a href="/finance"><span><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 9h16"/></svg></span><div><strong>Open finance</strong><small>Receivables and payables</small></div><b>›</b></a>
+                    <% if (can("orders.create")) { %><a href="/orders/new"><span><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span><div><strong>Create sales order</strong><small>Record a customer order</small></div><b>›</b></a><% } %>
+                    <% if (can("procurement.view")) { %><a href="/procurement"><span><svg viewBox="0 0 24 24"><path d="M4 7h16l-2 12H6L4 7Z"/></svg></span><div><strong>Open procurement</strong><small>Purchase and receive stock</small></div><b>›</b></a><% } %>
+                    <% if (can("inventory.view")) { %><a href="/inventory"><span><svg viewBox="0 0 24 24"><path d="M4 6h16v14H4zM4 10h16"/></svg></span><div><strong>Review inventory</strong><small>Check warehouse stock</small></div><b>›</b></a><% } %>
+                    <% if (can("finance.view")) { %><a href="/finance"><span><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 9h16"/></svg></span><div><strong>Open finance</strong><small>Receivables and payables</small></div><b>›</b></a><% } %>
                   </div>
                 </aside>
               </section>
