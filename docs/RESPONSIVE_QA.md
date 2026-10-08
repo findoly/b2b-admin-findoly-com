@@ -18,12 +18,12 @@ This document complements automated source-contract tests. **These checks are no
 ## Acceptance checks
 
 - [ ] **Shell:** Header stays in one row, no cropped logo, menu/theme/user controls are at least 44×44px on mobile, no unwanted document-wide horizontal scrolling.
-- [ ] **Navigation:** Mobile drawer opens/closes with overlay and Escape; focus moves inside and returns to menu; background content cannot receive focus while drawer is open; desktop navigation remains stable.
+- [ ] **Navigation:** Compact mobile drawer header keeps the Findoly logo, Menu label and 44px close button separated at 360–430px; no oversized gap before Workspace. Drawer opens/closes with overlay and Escape; focus moves inside and returns to menu; background content cannot receive focus while drawer is open; desktop navigation remains stable.
 - [ ] **Order form:** Four numbered steps fit horizontally on 360–430px, labels are legible, active/completed states update, and no 18rem blank header gap occurs.
 - [ ] **Order form actions:** Back, Continue, and Create remain reachable above the on-screen keyboard and Safari toolbar; disabled states are conveyed and working.
 - [ ] **Lists:** Orders, Products, Customers mobile records wrap long names and status badges; action buttons never overlap or clip.
 - [ ] **Finance:** Wide tables scroll inside their cards, first column remains visible, form labels map to controls, saving feedback prevents duplicate invoice actions.
-- [ ] **Dashboard:** Metrics and recent orders do not flash false zeros while loading; retry button recovers from API failure.
+- [ ] **Dashboard:** No blank pink/red Retry dashboard banner when the API succeeds; a real API error shows an explanation and usable retry. Metrics and recent orders do not flash false zeros while loading. The phone heading, subtitle and primary action remain compact.
 - [ ] **Reports and S3:** Loading, empty states, upload progress and error feedback remain readable on phone and laptop.
 - [ ] **Theme/accessibility:** Test default and dark/high-contrast presets, 200% zoom, keyboard focus visibility, reduced motion and accessible text contrast.
 - [ ] **Laptop:** Verify metrics, form grids and table headings at 1024, 1280 and 1440px with no awkward card wrapping.

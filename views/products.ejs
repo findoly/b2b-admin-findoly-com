@@ -4,7 +4,7 @@
 <div class="page-content"><%- include('partials/sidebar') %><div class="content-wrapper"><div class="content-inner">
 <div class="page-header page-header-light crm-page-header"><div class="page-header-content crm-page-heading"><div><div class="crm-page-eyebrow">Catalogue</div><h1 class="page-title mb-1">Products</h1><p class="crm-page-subtitle mb-0">A focused catalogue list. Open a product for description, gallery, documents and supplier sourcing.</p></div><% if (can('products.create')) { %><a class="btn btn-primary crm-primary-action" href="/products/new"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New product</a><% } %></div></div>
 <div class="content" x-data="productsListPage()" x-init="loadProducts()">
-<div x-show="shellError" x-cloak class="alert alert-danger" x-text="shellError"></div><div x-show="error" x-cloak role="alert" class="alert alert-danger d-flex flex-wrap justify-content-between align-items-center gap-2"><span x-text="error"></span><button type="button" class="btn btn-sm btn-outline-danger" @click="loadProducts()">Retry</button></div>
+<div x-show="shellError" x-cloak class="alert alert-danger" x-text="shellError"></div><div x-show="error" x-cloak role="alert" class="alert alert-danger"><div class="d-flex flex-wrap justify-content-between align-items-center gap-2"><span x-text="error"></span><button type="button" class="btn btn-sm btn-outline-danger" :disabled="loading" @click="loadProducts()">Retry</button></div></div>
 <div class="d-flex gap-2 flex-wrap mb-3"><a href="/categories" class="btn btn-light">Categories</a><a href="/subcategories" class="btn btn-light">Subcategories</a></div>
 <section class="card crm-filter-card mb-3">
   <div class="crm-filter-bar">
