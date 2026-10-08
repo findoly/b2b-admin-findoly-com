@@ -164,4 +164,17 @@ test("order confirmation reserves stock inside a real Mongo transaction",async(t
     assert.equal(overridden.lines[0].unitPricePaise,4000);assert.equal(overridden.lines[0].priceException,true);assert.equal(overridden.approvalStatus,"pending");
   });
 
+  await t.test("streamed business reporting agrees with MongoDB order totals",async()=>{
+    const reports=require("../services/report-service");
+    const today=new Date().toISOString().slice(0,10);
+    const result=await reports.businessSummary({from:today,to:today});
+    const orders=await SalesOrder.find({status:{$ne:"cancelled"},orderType:{$ne:"replacement"}}).lean();
+    const netSales=orders.reduce((sum,order)=>sum+Number(order.taxablePaise||0),0);
+    const cost=orders.reduce((sum,order)=>sum+(order.lines||[]).reduce((lineSum,line)=>lineSum+Number(line.stockReservedQty||0)*Number(line.stockUnitCostPaise||0),0),0);
+    assert.equal(result.salesOrderCount,orders.length);
+    assert.equal(result.netSalesPaise,netSales);
+    assert.equal(result.stockCostPaise,cost);
+    assert.equal(result.agentPerformance.reduce((sum,agent)=>sum+agent.orderCount,0),orders.length);
+  });
+
 });
