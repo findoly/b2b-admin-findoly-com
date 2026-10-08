@@ -80,7 +80,54 @@ test("order confirmation reserves stock inside a real Mongo transaction",async(t
   assert.ok(movement);
   assert.equal(movement.quantityDelta,3);
 
+  await t.test("concurrent picking cannot consume another order's reservation",async()=>{
+    const secondId=uuid();
+    await SalesOrder.create({
+      salesOrderId:secondId,orderNumber:`SO-TXN-SECOND-${Date.now()}`,customerId,
+      customerSnapshot:{businessName:"Transaction Test Customer",mobile:"9000000001"},
+      deliveryAddressSnapshot:{line1:"1 Test Road",city:"Mumbai",state:"Maharashtra",pincode:"400001"},
+      assignedEmployeeId:actor,warehouseId,status:"created",approvalStatus:"not_required",
+      lines:[{productId,productName:"Test Product",sku:"TXN-SKU",quantity:2,unitPricePaise:5000,gstRateBps:1800}],
+      taxablePaise:10000,gstPaise:1800,totalPaise:11800,gstTreatment:"intra_state",
+      createdBy:actor,updatedBy:actor
+    });
+    await orderService.confirm(secondId,{employeeId:actor,permissions:["orders.create"]});
+    const results=await Promise.allSettled([
+      orderService.advanceFulfilment(salesOrderId,"picking",actor),
+      orderService.advanceFulfilment(salesOrderId,"picking",actor)
+    ]);
+    assert.equal(results.filter(x=>x.status==="fulfilled").length,1);
+    assert.equal(results.filter(x=>x.status==="rejected").length,1);
+    const current=await InventoryBalance.findOne({warehouseId,productId}).lean();
+    assert.equal(current.availableQty,5);
+    assert.equal(current.reservedQty,2,"another order's reservation must stay intact");
+    assert.equal(current.pickedQty,3);
+    assert.equal(await InventoryMovement.countDocuments({referenceId:salesOrderId,movementType:"pick"}),1);
+    assert.equal((await SalesOrder.findOne({salesOrderId}).lean()).status,"picking");
+  });
+
   await Employee.create({employeeId:actor,name:"Pricing Test Employee",mobile:"9000000002",normalizedMobile:"9000000002",roleId:uuid()});
+  await t.test("payment idempotency replays a missing paidAt without double recording cash",async()=>{
+    const finance=require("../services/finance-service");
+    const Payment=require("../models/Payment");
+    const idempotencyKey="qa-payment-retry-"+uuid();
+    const payload={idempotencyKey,direction:"receivable",customerId,amountPaise:1500,mode:"bank_transfer",reference:"QA RETRY WITHOUT DATE",allocations:[]};
+    const original=await finance.recordPayment(payload,actor);
+    await new Promise(resolve=>setTimeout(resolve,15));
+    const replay=await finance.recordPayment(payload,actor);
+    assert.equal(replay.paymentId,original.paymentId);
+    assert.equal(await Payment.countDocuments({idempotencyKey}),1);
+    await assert.rejects(finance.recordPayment({...payload,amountPaise:1600},actor),err=>err.status===409&&err.code==="IDEMPOTENCY_KEY_REUSED");
+  });
+  await t.test("manual adjustment rejects workflow-managed stock without mutation",async()=>{
+    const inventory=require("../services/inventory-service");
+    const before=await InventoryBalance.findOne({warehouseId,productId}).lean();
+    await assert.rejects(inventory.adjust({warehouseId,productId,bucket:"reserved",quantityDelta:-1},actor),err=>err.status===409&&err.code==="WORKFLOW_STOCK_ADJUSTMENT_FORBIDDEN");
+    const after=await InventoryBalance.findOne({warehouseId,productId}).lean();
+    assert.equal(after.reservedQty,before.reservedQty);
+    assert.equal(after.pickedQty,before.pickedQty);
+  });
+
   const admin={employeeId:actor,permissions:["orders.create"]};
   const now=Date.now();
   const baseAgreement={customerId,productId,unitPricePaise:4200,minimumQuantity:5,validFrom:new Date(now-60000),validUntil:null,approvalStatus:"approved",active:true,negotiatedBy:actor,createdBy:actor,updatedBy:actor};
@@ -115,6 +162,19 @@ test("order confirmation reserves stock inside a real Mongo transaction",async(t
     assert.equal(automatic.lines[0].unitPricePaise,4500);assert.equal(automatic.lines[0].customerProductPriceId,older.customerProductPriceId);
     const overridden=await orderService.create({customerId,warehouseId,lines:[{productId,quantity:1,unitPricePaise:4000}]},admin);
     assert.equal(overridden.lines[0].unitPricePaise,4000);assert.equal(overridden.lines[0].priceException,true);assert.equal(overridden.approvalStatus,"pending");
+  });
+
+  await t.test("streamed business reporting agrees with MongoDB order totals",async()=>{
+    const reports=require("../services/report-service");
+    const today=new Date().toISOString().slice(0,10);
+    const result=await reports.businessSummary({from:today,to:today});
+    const orders=await SalesOrder.find({status:{$ne:"cancelled"},orderType:{$ne:"replacement"}}).lean();
+    const netSales=orders.reduce((sum,order)=>sum+Number(order.taxablePaise||0),0);
+    const cost=orders.reduce((sum,order)=>sum+(order.lines||[]).reduce((lineSum,line)=>lineSum+Number(line.stockReservedQty||0)*Number(line.stockUnitCostPaise||0),0),0);
+    assert.equal(result.salesOrderCount,orders.length);
+    assert.equal(result.netSalesPaise,netSales);
+    assert.equal(result.stockCostPaise,cost);
+    assert.equal(result.agentPerformance.reduce((sum,agent)=>sum+agent.orderCount,0),orders.length);
   });
 
 });
