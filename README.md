@@ -4,6 +4,10 @@ Separate Findoly B2B distribution operations application. It shares its **new B2
 
 Architecture follows the reference `admin-findoly-com`: EJS page shells, Alpine JSON APIs, controller -> service -> simple denormalized Mongoose models, named UUID application IDs, and no joins/populate.
 
+## UI contributor and AI-agent rules
+
+All UI changes must follow the root [UI_RULES.md](UI_RULES.md) and [AGENTS.md](AGENTS.md), alongside [PROJECT_STANDARDS.md](PROJECT_STANDARDS.md). The [responsive QA matrix](docs/RESPONSIVE_QA.md) defines required manual browser checks. UI implementation requires an audit/plan and explicit approval before changing production EJS/CSS.
+
 ## Setup
 ```bash
 cp .env.example .env
