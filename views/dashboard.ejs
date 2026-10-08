@@ -30,33 +30,33 @@
               <section x-show="!loading && !error" x-cloak class="crm-metric-grid mb-4" aria-label="B2B dashboard totals">
                 <article class="crm-metric-card crm-metric-blue">
                   <div class="crm-metric-top"><div><span class="crm-metric-label">Today's orders</span><strong class="crm-metric-value" x-text="number(data.todayOrders)">0</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span></div>
-                  <div class="crm-metric-note">Sales orders created today</div>
+                  <div class="crm-metric-note">Sales orders created today</div><% if (can('orders.view')) { %><a class="crm-metric-action" href="/orders" aria-label="View orders">View orders <span aria-hidden="true">→</span></a><% } %>
                 </article>
                 <article class="crm-metric-card crm-metric-purple">
                   <div class="crm-metric-top"><div><span class="crm-metric-label">Pending procurement</span><strong class="crm-metric-value" x-text="number(data.pendingProcurement)">0</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><path d="M4 7h16l-2 12H6L4 7Z"/><path d="M8 7a4 4 0 0 1 8 0"/></svg></span></div>
-                  <div class="crm-metric-note">Orders waiting on sourcing</div>
+                  <div class="crm-metric-note">Orders waiting on sourcing</div><% if (can('procurement.view')) { %><a class="crm-metric-action" href="/procurement/demand" aria-label="View demand">View demand <span aria-hidden="true">→</span></a><% } %>
                 </article>
                 <article class="crm-metric-card crm-metric-green">
                   <div class="crm-metric-top"><div><span class="crm-metric-label">Ready to dispatch</span><strong class="crm-metric-value" x-text="number(data.readyDispatch)">0</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><path d="M3 6h11v10H3zM14 9h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg></span></div>
-                  <div class="crm-metric-note">Packed orders ready for delivery</div>
+                  <div class="crm-metric-note">Packed orders ready for delivery</div><% if (can('delivery.view')) { %><a class="crm-metric-action" href="/delivery" aria-label="View deliveries">View deliveries <span aria-hidden="true">→</span></a><% } %>
                 </article>
                 <article class="crm-metric-card crm-metric-amber">
                   <div class="crm-metric-top"><div><span class="crm-metric-label">Price approvals</span><strong class="crm-metric-value" x-text="number(data.pendingPrices)">0</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5M16 16h.01"/></svg></span></div>
-                  <div class="crm-metric-note">Negotiated prices awaiting approval</div>
+                  <div class="crm-metric-note">Negotiated prices awaiting approval</div><% if (can('pricing.view')) { %><a class="crm-metric-action" href="/pricing" aria-label="Review prices">Review prices <span aria-hidden="true">→</span></a><% } %>
                 </article>
               </section>
 
               <section x-show="!loading && !error" x-cloak class="crm-metric-grid mb-4" aria-label="B2B finance totals">
-                <article class="crm-metric-card crm-metric-blue"><div class="crm-metric-top"><div><span class="crm-metric-label">Overdue receivables</span><strong class="crm-metric-value" x-text="money(data.overdueReceivablePaise)">₹0.00</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><path d="M6 4h12M6 8h12M8 4c7 0 7 9 0 9H7l8 7"/></svg></span></div><div class="crm-metric-note">Customer collections overdue</div></article>
-                <article class="crm-metric-card crm-metric-purple"><div class="crm-metric-top"><div><span class="crm-metric-label">Overdue payables</span><strong class="crm-metric-value" x-text="money(data.overduePayablePaise)">₹0.00</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><path d="M6 4h12M6 8h12M8 4c7 0 7 9 0 9H7l8 7"/></svg></span></div><div class="crm-metric-note">Supplier payments overdue</div></article>
-                <article class="crm-metric-card crm-metric-amber"><div class="crm-metric-top"><div><span class="crm-metric-label">Low / zero stock</span><strong class="crm-metric-value" x-text="number(data.lowStockCount)">0</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v14H4z"/><path d="M4 10h16M9 14h6"/></svg></span></div><div class="crm-metric-note">Inventory balances needing attention</div></article>
+                <article class="crm-metric-card crm-metric-blue"><div class="crm-metric-top"><div><span class="crm-metric-label">Overdue receivables</span><strong class="crm-metric-value" x-text="money(data.overdueReceivablePaise)">₹0.00</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><path d="M6 4h12M6 8h12M8 4c7 0 7 9 0 9H7l8 7"/></svg></span></div><div class="crm-metric-note">Customer collections overdue</div><% if (can('finance.view')) { %><a class="crm-metric-action" href="/finance#finance-invoices" aria-label="View receivables">View receivables <span aria-hidden="true">→</span></a><% } %></article>
+                <article class="crm-metric-card crm-metric-purple"><div class="crm-metric-top"><div><span class="crm-metric-label">Overdue payables</span><strong class="crm-metric-value" x-text="money(data.overduePayablePaise)">₹0.00</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><path d="M6 4h12M6 8h12M8 4c7 0 7 9 0 9H7l8 7"/></svg></span></div><div class="crm-metric-note">Supplier payments overdue</div><% if (can('finance.view')) { %><a class="crm-metric-action" href="/finance#finance-bills" aria-label="View payables">View payables <span aria-hidden="true">→</span></a><% } %></article>
+                <article class="crm-metric-card crm-metric-amber"><div class="crm-metric-top"><div><span class="crm-metric-label">Low / zero stock</span><strong class="crm-metric-value" x-text="number(data.lowStockCount)">0</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v14H4z"/><path d="M4 10h16M9 14h6"/></svg></span></div><div class="crm-metric-note">Inventory balances needing attention</div><% if (can('inventory.view')) { %><a class="crm-metric-action" href="/inventory" aria-label="Check inventory">Check inventory <span aria-hidden="true">→</span></a><% } %></article>
               </section>
 
               <section x-show="!loading && !error" x-cloak class="crm-dashboard-grid">
                 <div class="card crm-data-card">
                   <div class="card-header crm-card-heading">
                     <div><h2 class="card-title mb-1">Recent sales orders</h2><p class="text-muted mb-0">Latest B2B customer orders created by the Findoly team.</p></div>
-                    <a href="/orders" class="btn btn-light btn-sm">View all orders</a>
+                    <% if (can('orders.view')) { %><a href="/orders" class="btn btn-light btn-sm">View all orders</a><% } %>
                   </div>
                   <div class="table-responsive">
                     <table class="table crm-table crm-dashboard-record-table mb-0">
@@ -72,7 +72,7 @@
                             <td class="crm-nowrap" x-text="formatDateOnly(order.createdAt)"></td>
                           </tr>
                         </template>
-                        <tr x-show="!loading && !(data.recentOrders || []).length"><td colspan="5"><div class="crm-empty-state"><span class="crm-empty-icon"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><strong>No sales orders yet</strong><span>Create the first B2B order to start the workflow.</span><a href="/orders" class="btn btn-primary btn-sm">Create sales order</a></div></td></tr>
+                        <tr x-show="!loading && !(data.recentOrders || []).length"><td colspan="5"><div class="crm-empty-state"><span class="crm-empty-icon"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><strong>No sales orders yet</strong><span>Create the first B2B order to start the workflow.</span><% if (can('orders.create')) { %><a href="/orders/new" class="btn btn-primary btn-sm">Create sales order</a><% } else if (can('orders.view')) { %><a href="/orders" class="btn btn-light btn-sm">View orders</a><% } %></div></td></tr>
                       </tbody>
                     </table>
                   </div>
