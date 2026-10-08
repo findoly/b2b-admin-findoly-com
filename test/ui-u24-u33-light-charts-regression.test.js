@@ -28,3 +28,5 @@ test("U29: sales trends use exact local IST day labels, not UTC labels",async()=
  const days=await context.module.exports.salesTrend(new Date("2026-10-09T10:00:00.000Z"));
  assert.equal(days.length,14);assert.equal(days[0].day,"2026-09-26");assert.equal(days[13].day,"2026-10-09");
 });
+
+test("U33: keyboard and hover users can inspect every daily sales bar",()=>{const s=read("views/dashboard.ejs");assert.match(s,/:title="dailySalesLabel\(day\)" tabindex="0"/);assert.match(read("public/css/b2b-workspace.css"),/\.crm-spark-day:focus-visible/);});

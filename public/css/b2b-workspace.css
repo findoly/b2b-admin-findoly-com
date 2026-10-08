@@ -215,3 +215,6 @@
 @media(max-width:991.98px){.content .crm-visual-grid{grid-template-columns:1fr}.content .crm-donut-layout{grid-template-columns:minmax(8rem,1fr) minmax(0,2fr)}}
 @media(max-width:575.98px){.content .crm-attention-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem}.content .crm-attention-card{padding:.75rem;min-height:9rem}.content .crm-attention-card>strong{font-size:1.2rem}.content .crm-donut-layout{grid-template-columns:1fr}.content .crm-spark-chart{gap:.15rem}.content .crm-spark-amount{display:none}.content .crm-spark-day small{font-size:.52rem;writing-mode:vertical-rl;transform:rotate(180deg);max-height:2.4rem}.content .crm-risk-row{grid-template-columns:minmax(0,1fr) auto}.content .crm-risk-row>span:last-child{display:none}}
 @media(prefers-reduced-motion:reduce){.content .crm-comparison-track>span,.content .crm-spark-track>span{transition:none}}
+
+/* Keyboard focus for the chart's per-day value descriptions. */
+.content .crm-spark-day:focus-visible{outline:2px solid var(--crm-user-accent,#3478d4);outline-offset:2px;border-radius:.35rem}
