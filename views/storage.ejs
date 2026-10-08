@@ -15,22 +15,22 @@
 <div class="row g-4">
 <% if (can('storage.manage')) { %>
 <div class="col-lg-6"><div class="card crm-data-card h-100"><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Upload file</h2><p class="text-muted mb-0">The browser uploads directly to S3 using a short-lived signed URL.</p></div></div><div class="card-body">
-<label class="form-label">Destination</label><select class="form-select mb-3" x-model="prefix"><option value="public/b2b/products/">Public product media</option><option value="private/b2b/products/">Private product documents</option><option value="private/b2b/suppliers/">Supplier documents</option><option value="private/b2b/invoices/">Invoice/source documents</option><option value="private/b2b/returns/">Return evidence</option></select>
-<label class="form-label">File</label><input class="form-control" type="file" @change="file=$event.target.files[0]">
-<div class="d-flex align-items-center gap-2 mt-3"><button class="btn btn-primary" @click="upload()" :disabled="!file||uploading" x-text="uploading?'Uploading…':'Upload file'"></button><span class="text-success fs-sm" x-show="lastKey" x-text="'Uploaded: '+lastKey"></span></div>
+<label class="form-label" for="storage-prefix">Destination</label><select id="storage-prefix" class="form-select mb-3" x-model="prefix"><option value="public/b2b/products/">Public product media</option><option value="private/b2b/products/">Private product documents</option><option value="private/b2b/suppliers/">Supplier documents</option><option value="private/b2b/invoices/">Invoice/source documents</option><option value="private/b2b/returns/">Return evidence</option></select>
+<label class="form-label" for="storage-file">File</label><input id="storage-file" class="form-control" type="file" @change="file=$event.target.files[0]">
+<div class="d-flex align-items-center gap-2 mt-3"><button class="btn btn-primary" @click="upload()" :disabled="!file||uploading" x-text="uploading?'Uploading…':'Upload file'"></button><span class="text-success fs-sm" x-show="lastKey" x-text="'Uploaded: '+lastKey"></span></div><div class="crm-upload-progress" x-show="uploading" x-cloak role="status" aria-live="polite"><label class="form-label" for="storage-upload-progress" x-text="'Uploading file: '+uploadProgress+'%'"></label><progress id="storage-upload-progress" class="w-100" max="100" :value="uploadProgress"></progress></div>
 </div></div></div>
 <% } %>
 <div class="col-lg-6"><div class="card crm-data-card h-100"><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Open or download file</h2><p class="text-muted mb-0">Enter an approved B2B S3 key to generate a secure link.</p></div></div><div class="card-body">
-<label class="form-label">S3 key</label><input class="form-control" placeholder="private/b2b/..." x-model="downloadKey">
+<label class="form-label" for="storage-download-key">S3 key</label><input id="storage-download-key" class="form-control" placeholder="private/b2b/..." x-model="downloadKey">
 <button class="btn btn-outline-primary mt-3" @click="download()" :disabled="!downloadKey">Create secure link</button>
 <div class="alert alert-success mt-3 mb-0" x-show="downloadUrl" x-cloak><div class="fw-semibold">Link ready</div><a :href="downloadUrl" target="_blank" rel="noopener">Open file in a new tab</a></div>
 </div></div></div>
 </div>
 </div><%- include('partials/footer') %></div></div></div>
 <script nonce="<%= cspNonce %>">function storagePage(){return{
-config:{},file:null,prefix:'public/b2b/products/',lastKey:'',downloadKey:'',downloadUrl:'',uploading:false,error:'',
+config:{},file:null,prefix:'public/b2b/products/',lastKey:'',downloadKey:'',downloadUrl:'',uploading:false,uploadProgress:0,error:'',
 async load(){try{this.config=(await apiFetch('/api/storage/config')).data||{}}catch(e){this.error=e.message}},
-async upload(){if(!this.file)return;this.uploading=true;try{const name=Date.now()+'-'+this.file.name;const x=(await apiFetch('/api/storage/upload-url',{method:'POST',body:JSON.stringify({prefix:this.prefix,fileName:name,contentType:this.file.type||'application/octet-stream',sizeBytes:this.file.size})})).data;await putPresignedUpload(x,this.file);this.lastKey=x.key;showCrmToast('File uploaded')}catch(e){this.error=e.message;showCrmToast(e.message,'error')}finally{this.uploading=false}},
+async upload(){if(!this.file||this.uploading)return;this.uploading=true;this.uploadProgress=0;this.error='';try{const name=Date.now()+'-'+this.file.name;const x=(await apiFetch('/api/storage/upload-url',{method:'POST',body:JSON.stringify({prefix:this.prefix,fileName:name,contentType:this.file.type||'application/octet-stream',sizeBytes:this.file.size})})).data;await putPresignedUpload(x,this.file,percent=>{this.uploadProgress=percent});this.uploadProgress=100;this.lastKey=x.key;showCrmToast('File uploaded')}catch(e){this.error=e.message;showCrmToast(e.message,'error')}finally{this.uploading=false}},
 async download(){try{const x=(await apiFetch('/api/storage/download-url',{method:'POST',body:JSON.stringify({key:this.downloadKey})})).data;this.downloadUrl=x.url}catch(e){this.error=e.message;showCrmToast(e.message,'error')}}
 }}</script><%- include('partials/scripts') %>
 </body></html>
