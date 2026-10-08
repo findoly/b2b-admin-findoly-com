@@ -30,6 +30,7 @@ This document complements automated source-contract tests. **These checks are no
 - [ ] **Laptop:** Verify metrics, form grids and table headings at 1024, 1280 and 1440px with no awkward card wrapping.
 - [ ] **U13–U17/U22:** Verify Returns and Audit mobile list cards, field labels, focused validation errors, loading/empty/retry states, and disabled in-flight create/process actions. Confirm supplier, pricing, warehouse and employee forms cannot submit twice.
 - [ ] **U18–U23:** Finance section jump links land on visible cards; Customer 360 jump links stay within the open customer; dashboard metric links respect permissions, including empty-state actions; active-filter context is dismissible. Verify focus, 44px links and wrapping across all viewports, themes and 200% zoom.
+- [ ] **U24–U33 lightweight charts:** Validate dashboard action priority counts, 14-day IST sales bars, status donut and filtered orders links; reports employee/supplier charts and actual 0-data states; Finance receivable aging (including undated); Sales Insights SKU drill-through; Inventory page-scoped exception labels. Check light/dark themes, 375/430/768/1024/1440px, 200% zoom, keyboard and permission-aware links. No new theme picker or charting dependencies.
 - [ ] **Regressions:** Test order creation, finance invoice/payment, sidebar permissions and fulfilment transitions; business logic remains unchanged.
 
 ## Automated checks

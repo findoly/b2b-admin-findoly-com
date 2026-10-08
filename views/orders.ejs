@@ -31,7 +31,7 @@
 </div><%- include('partials/footer') %></div></div></div>
 <script nonce="<%= cspNonce %>">
 function ordersListPage(){return{
-...crmPager('loadOrders'),orders:[],loading:true,error:'',statusFilter:'',search:'',
+...crmPager('loadOrders'),orders:[],loading:true,error:'',statusFilter:new URLSearchParams(location.search).get('status')||'',search:'',
 async loadOrders(){this.loading=true;this.error='';try{const q=new URLSearchParams({limit:String(this.pageSize),page:String(this.page)});if(this.statusFilter)q.set('status',this.statusFilter);if(this.search)q.set('search',this.search);const data=(await apiFetch('/api/orders?'+q)).data;this.orders=data.items||[];this.setPageMeta(data)}catch(e){this.error=e.message}finally{this.loading=false}},
 filterOrders(){this.resetPage();return this.loadOrders()},totalQty(o){return(o.lines||[]).reduce((s,l)=>s+Number(l.quantity||0),0)}
 }}</script><%- include('partials/scripts') %>
