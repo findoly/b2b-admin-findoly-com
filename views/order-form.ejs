@@ -3,7 +3,7 @@
 <body x-data="crmShell()" x-init="initShell()"><%- include('partials/navbar') %>
 <div class="page-content"><%- include('partials/sidebar') %><div class="content-wrapper"><div class="content-inner">
 <div class="page-header page-header-light crm-page-header"><div class="page-header-content crm-page-heading"><div><div class="crm-page-eyebrow">Sales order workflow</div><h1 class="page-title mb-1">New sales order</h1><p class="crm-page-subtitle mb-0">Customer → products and pricing → warehouse → review.</p></div><a class="btn btn-light" href="/orders">Back to orders</a></div></div>
-<div class="content" x-data="orderFormPage()" x-init="load()"><div x-show="shellError" x-cloak class="alert alert-danger" role="alert" aria-live="assertive" x-text="shellError"></div><div x-show="error" x-cloak role="alert" aria-live="assertive" class="alert alert-danger" role="alert" aria-live="assertive" x-text="error"></div>
+<div class="content" x-data="orderFormPage()" x-init="load()"><div x-show="shellError" x-cloak class="alert alert-danger" role="alert" aria-live="assertive" x-text="shellError"></div><div x-show="error" x-cloak role="alert" aria-live="assertive" class="alert alert-danger" x-text="error"></div>
 
 <div class="card crm-data-card mb-4 crm-order-timeline-card">
   <div class="card-header crm-card-heading crm-order-wizard-heading">
@@ -13,7 +13,7 @@
   <div class="card-body">
     <div class="crm-order-timeline crm-order-timeline-detailed" role="list" aria-label="Sales order stages">
       <template x-for="(label,index) in steps" :key="label">
-        <button class="crm-order-timeline-step" type="button" role="listitem" :class="{'is-active':step===index+1,'is-complete':step>index+1}" :disabled="index+1>step" @click="go(index+1)">
+        <button class="crm-order-timeline-step" type="button" role="listitem" :class="{'is-active':step===index+1,'is-complete':step>index+1}" :aria-current="step===index+1 ? 'step' : null" :aria-label="label+' — '+stageStatus(index+1)" :disabled="index+1>step" @click="go(index+1)">
           <span class="crm-order-timeline-node"><span x-show="step<=index+1" x-text="index+1"></span><span x-show="step>index+1" aria-hidden="true">✓</span></span>
           <span class="crm-order-timeline-copy"><strong x-text="label"></strong><small x-text="stepNotes[index]"></small><em x-text="stageStatus(index+1)"></em></span>
         </button>
