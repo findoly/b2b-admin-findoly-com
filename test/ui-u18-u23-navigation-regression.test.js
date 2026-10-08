@@ -31,5 +31,5 @@ test("U23: navigation and filter presentation remains responsive and theme-aware
  const css=read("public/css/b2b-workspace.css"),head=read("views/partials/head.ejs"),qa=read("docs/RESPONSIVE_QA.md");
  for(const selector of [".crm-section-jump",".crm-filter-summary",".crm-metric-action"])assert.ok(css.includes(selector));
  assert.match(css,/min-height:44px/);assert.match(css,/:focus-visible/);assert.match(css,/@media\(max-width:767\.98px\)/);
- assert.match(head,/20261009-u18-u23-navigation-filters/);assert.match(qa,/U18–U23/);
+ assert.match(head,/20261009-b2b-responsive-u1-u12-b1-b6-f1-f4-u18-u23-navigation-filters/);assert.match(qa,/U18–U23/);
 });
