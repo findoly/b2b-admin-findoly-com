@@ -14,23 +14,23 @@
                     <h5 class="mb-1">B2B employee sign in</h5>
                     <span class="d-block text-muted">Use your registered mobile number and OTP</span>
                   </div>
-                  <div x-show="error" x-cloak class="alert alert-danger" x-text="error"></div>
-                  <div x-show="message" x-cloak class="alert alert-success" x-text="message"></div>
+                  <div x-show="error" x-cloak role="alert" aria-live="assertive" class="alert alert-danger" x-text="error"></div>
+                  <div x-show="message" x-cloak role="status" aria-live="polite" class="alert alert-success" x-text="message"></div>
                   <div class="mb-3">
-                    <label class="form-label">Mobile number</label>
+                    <label class="form-label" for="login-mobile">Mobile number</label>
                     <div class="input-group">
                       <span class="input-group-text">+91</span>
-                      <input class="form-control" type="tel" inputmode="numeric" autocomplete="tel" maxlength="10" placeholder="Enter 10-digit mobile" x-model="form.mobile" @input="form.mobile = digits(form.mobile)" :readonly="step === 'otp'" required>
+                      <input id="login-mobile" class="form-control" type="tel" inputmode="numeric" autocomplete="tel" maxlength="10" placeholder="Enter 10-digit mobile" x-model="form.mobile" @input="form.mobile = digits(form.mobile)" :readonly="step === 'otp'" required>
                     </div>
                   </div>
                   <template x-if="step === 'otp'">
                     <div>
                       <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                          <label class="form-label mb-0">One-time password</label>
+                          <label class="form-label mb-0" for="login-otp">One-time password</label>
                           <button type="button" class="btn btn-link btn-sm p-0" @click="changeMobile()">Change mobile</button>
                         </div>
-                        <input class="form-control crm-otp-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="Enter OTP" x-model="form.otp" @input="form.otp = String(form.otp || '').replace(/\D/g, '').slice(0, 8)" required>
+                        <input id="login-otp" class="form-control crm-otp-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="Enter OTP" x-model="form.otp" @input="form.otp = String(form.otp || '').replace(/\D/g, '').slice(0, 8)" required>
                       </div>
                       <div class="d-flex justify-content-between align-items-center mb-3 fs-sm">
                         <span class="text-muted">Secure employee session</span>

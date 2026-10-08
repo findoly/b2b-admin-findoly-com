@@ -50,7 +50,7 @@
 
   .crm-mobile-search-submit,
   .crm-mobile-filter-toggle {
-    min-height: 42px;
+    min-height: 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -106,7 +106,7 @@
   .crm-mobile-filter-panel .form-select {
     width: 100% !important;
     max-width: none !important;
-    min-height: 42px;
+    min-height: 44px;
   }
 
   .crm-mobile-filter-panel .crm-filter-actions {
@@ -119,7 +119,7 @@
 
   .crm-mobile-filter-panel .crm-filter-actions .btn {
     flex: 1 1 8rem;
-    min-height: 42px;
+    min-height: 44px;
   }
 
   .crm-mobile-filter-panel .crm-page-size,
@@ -174,7 +174,7 @@
   .crm-filter-advanced select,
   .crm-filter-advanced input,
   .crm-filter-advanced .btn {
-    min-height: 42px;
+    min-height: 44px;
   }
 }
 
