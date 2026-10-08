@@ -3,7 +3,7 @@
 <body x-data="crmShell()" x-init="initShell()"><%- include('partials/navbar') %>
 <div class="page-content"><%- include('partials/sidebar') %><div class="content-wrapper"><div class="content-inner">
 <div class="page-header page-header-light crm-page-header"><div class="page-header-content crm-page-heading"><div><div class="crm-page-eyebrow">Warehouse workflow</div><h1 class="page-title mb-1">Fulfil sales order</h1><p class="crm-page-subtitle mb-0">Follow warehouse progress from stock readiness through picking, packing and dispatch.</p></div><a class="btn btn-light" href="/orders/<%= encodeURIComponent(typeof recordId === "string" ? recordId : "") %>">Back to order</a></div></div>
-<div class="content" x-data="orderFulfilmentPage()" x-init="load()"><div x-show="shellError" x-cloak class="alert alert-danger" x-text="shellError"></div><div x-show="error" x-cloak class="alert alert-danger" x-text="error"></div>
+<div class="content" x-data="orderFulfilmentPage()" x-init="load()"><div x-show="shellError" x-cloak class="alert alert-danger" x-text="shellError"></div><div x-show="error" x-cloak role="alert" aria-live="assertive" class="alert alert-danger" x-text="error"></div>
 
 <div class="card crm-data-card mb-4 crm-order-journey-card" x-show="order" x-cloak>
   <div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Warehouse stage</h2><p class="text-muted mb-0">The highlighted stage is the warehouse's current responsibility for this order.</p></div><div class="crm-order-current-stage-box"><span>Current stage</span><strong x-text="currentStageLabel()"></strong></div></div>
@@ -30,10 +30,10 @@
     <div class="card crm-data-card">
       <div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Next warehouse action</h2><p class="text-muted mb-0">Only the next valid operational step is enabled.</p></div></div>
       <div class="card-body">
-        <template x-if="['procurement_required','procurement_in_progress'].includes(crmValue(order,'status',''))"><div><div class="alert alert-warning">Some stock is still not reserved. Recheck after supplier receipts reach this warehouse.</div><button class="btn btn-primary w-100" @click="recheck()">Recheck warehouse stock</button><% if (can('procurement.create')) { %><a class="btn btn-light w-100 mt-2" :href="'/orders/'+orderId+'/procurement'">Manage supplier sourcing</a><% } %></div></template>
-        <button x-show="crmValue(order,'status','')==='stock_ready'" class="btn btn-primary w-100" @click="advance('picking')">Start picking</button>
-        <button x-show="crmValue(order,'status','')==='picking'" class="btn btn-primary w-100" @click="advance('packed')">Mark packed</button>
-        <button x-show="crmValue(order,'status','')==='packed'" class="btn btn-primary w-100" @click="advance('ready_for_dispatch')">Ready for dispatch</button>
+        <template x-if="['procurement_required','procurement_in_progress'].includes(crmValue(order,'status',''))"><div><div class="alert alert-warning">Some stock is still not reserved. Recheck after supplier receipts reach this warehouse.</div><button class="btn btn-primary w-100" :disabled="busy" @click="recheck()" x-text="busy ? 'Updating…' : 'Recheck warehouse stock'">Recheck warehouse stock</button><% if (can('procurement.create')) { %><a class="btn btn-light w-100 mt-2" :href="'/orders/'+orderId+'/procurement'">Manage supplier sourcing</a><% } %></div></template>
+        <button x-show="crmValue(order,'status','')==='stock_ready'" class="btn btn-primary w-100" :disabled="busy" @click="advance('picking')" x-text="busy ? 'Updating…' : 'Start picking'">Start picking</button>
+        <button x-show="crmValue(order,'status','')==='picking'" class="btn btn-primary w-100" :disabled="busy" @click="advance('packed')" x-text="busy ? 'Updating…' : 'Mark packed'">Mark packed</button>
+        <button x-show="crmValue(order,'status','')==='packed'" class="btn btn-primary w-100" :disabled="busy" @click="advance('ready_for_dispatch')" x-text="busy ? 'Updating…' : 'Ready for dispatch'">Ready for dispatch</button>
         <template x-if="crmValue(order,'status','')==='ready_for_dispatch'"><div><div class="alert alert-success">The order is packed and ready to leave this warehouse.</div><% if (can('delivery.assign')) { %><a class="btn btn-primary w-100" :href="'/delivery/assign?salesOrderId='+orderId">Assign delivery</a><% } %></div></template>
         <div x-show="['assigned_for_delivery','out_for_delivery','delivered','partially_delivered','delivery_failed','returned','cancelled'].includes(crmValue(order,'status',''))" class="text-muted">Warehouse fulfilment is complete for the current order state.</div>
       </div>
@@ -44,7 +44,7 @@
 </div><%- include('partials/footer') %></div></div></div>
 <script nonce="<%= cspNonce %>">
 function orderFulfilmentPage(){return{
-orderId:location.pathname.split('/')[2]||'',order:null,error:'',
+orderId:location.pathname.split('/')[2]||'',order:null,error:'',busy:false,
 warehouseStages:[
   {label:'Stock & sourcing',note:'Reserve or source demand'},
   {label:'Stock ready',note:'All product demand available'},
@@ -86,7 +86,7 @@ lineStage(line){
   if(status==='cancelled')return{label:'Cancelled',tone:'is-muted'};
   return{label:'Waiting for confirmation',tone:'is-muted'};
 },
-async recheck(){try{this.order=(await apiFetch('/api/orders/'+this.orderId+'/recheck-stock',{method:'POST',body:'{}'})).data;showCrmToast(this.order.status==='stock_ready'?'Stock reserved; ready to pick':'Procurement is still required')}catch(e){this.error=e.message;showCrmToast(e.message,'error')}},
-async advance(status){try{this.order=(await apiFetch('/api/orders/'+this.orderId+'/fulfil',{method:'POST',body:JSON.stringify({status})})).data;showCrmToast('Fulfilment updated')}catch(e){this.error=e.message;showCrmToast(e.message,'error')}}
+async recheck(){if(this.busy)return;this.busy=true;this.error='';try{this.order=(await apiFetch('/api/orders/'+this.orderId+'/recheck-stock',{method:'POST',body:'{}'})).data;showCrmToast(this.order.status==='stock_ready'?'Stock reserved; ready to pick':'Procurement is still required')}catch(e){this.error=e.message;showCrmToast(e.message,'error');if(e.status===409){try{await this.refresh()}catch(_){}}}finally{this.busy=false}},
+async advance(status){if(this.busy)return;this.busy=true;this.error='';try{this.order=(await apiFetch('/api/orders/'+this.orderId+'/fulfil',{method:'POST',body:JSON.stringify({status})})).data;showCrmToast('Fulfilment updated')}catch(e){this.error=e.status===409?'The order changed or the stock is no longer valid. '+e.message:e.message;showCrmToast(this.error,'error');if(e.status===409){try{await this.refresh()}catch(_){}}}finally{this.busy=false}}
 }}</script><%- include('partials/scripts') %>
 </body></html>
