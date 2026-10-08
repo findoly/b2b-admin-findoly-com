@@ -16,7 +16,7 @@ const gstRows = ["cgstPaise", "sgstPaise", "igstPaise"];
 
 function assertConditionalFlexTag(source, expression, classPrefix) {
   const expected = '<div class="' + classPrefix;
-  const tag = [...source.matchAll(/<div\b[^>]*>/g)]
+  const tag = [...source.matchAll(/<div\b(?:[^>"']|"[^"]*"|'[^']*')*>/g)]
     .map(match => match[0])
     .find(value => value.startsWith(expected) && value.includes('x-show="' + expression + '"'));
   assert.ok(tag, "Missing conditional flex element for " + expression);
@@ -52,7 +52,8 @@ test("F3: common pager visibility stays Alpine-controlled across list screens", 
 test("F4: no conditional element in affected templates uses important Bootstrap display utilities", () => {
   for (const file of ["views/finance.ejs", "views/invoice.ejs", "views/partials/pager.ejs"]) {
     const source = read(file);
-    const tags = [...source.matchAll(/<[a-z][\w:-]*\b[^>]*\bx-show="[^"]+"[^>]*>/g)];
+    const tags = [...source.matchAll(/<[a-z][\w:-]*\b(?:[^>"']|"[^"]*"|'[^']*')*>/g)]
+      .filter(match => /\bx-show=/.test(match[0]));
     assert.ok(tags.length, "Expected Alpine conditional elements in " + file);
     for (const match of tags) {
       const tag = match[0];
