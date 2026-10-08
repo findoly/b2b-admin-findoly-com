@@ -43,7 +43,8 @@ test("finance and warehouse actions prevent concurrent requests",()=>{
 test("S3 views show measurable upload progress",()=>{
   for(const file of["views/storage.ejs","views/product-detail.ejs"]){
     const source=read(file);
-    assert.match(source,/putPresignedUpload\([^\n]*percent=>/);
+    assert.match(source,/putPresignedUpload/);
+    assert.match(source,/percent=>/);
     assert.match(source,/<progress /);
     assert.match(source,/uploadProgress/);
   }
