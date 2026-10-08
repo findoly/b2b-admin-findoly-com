@@ -25,9 +25,9 @@
           <div class="content">
             <div x-show="shellError" x-cloak class="alert alert-danger" x-text="shellError"></div>
             <main x-data="dashboardPage()" x-init="load()">
-              <div x-show="error" x-cloak class="alert alert-danger" x-text="error"></div>
+              <div x-show="error" x-cloak role="alert" class="alert alert-danger d-flex flex-wrap justify-content-between align-items-center gap-2"><span x-text="error"></span><button type="button" class="btn btn-sm btn-outline-danger" @click="load()">Retry dashboard</button></div><div x-show="loading" x-cloak class="card crm-data-card mb-3" role="status" aria-live="polite"><div class="card-body"><div class="crm-table-loading"><span></span><span></span><span></span></div><span class="visually-hidden">Loading dashboard metrics</span></div></div>
 
-              <section class="crm-metric-grid mb-4" aria-label="B2B dashboard totals">
+              <section x-show="!loading && !error" x-cloak class="crm-metric-grid mb-4" aria-label="B2B dashboard totals">
                 <article class="crm-metric-card crm-metric-blue">
                   <div class="crm-metric-top"><div><span class="crm-metric-label">Today's orders</span><strong class="crm-metric-value" x-text="number(data.todayOrders)">0</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span></div>
                   <div class="crm-metric-note">Sales orders created today</div>
@@ -46,20 +46,20 @@
                 </article>
               </section>
 
-              <section class="crm-metric-grid mb-4" aria-label="B2B finance totals">
+              <section x-show="!loading && !error" x-cloak class="crm-metric-grid mb-4" aria-label="B2B finance totals">
                 <article class="crm-metric-card crm-metric-blue"><div class="crm-metric-top"><div><span class="crm-metric-label">Overdue receivables</span><strong class="crm-metric-value" x-text="money(data.overdueReceivablePaise)">₹0.00</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><path d="M6 4h12M6 8h12M8 4c7 0 7 9 0 9H7l8 7"/></svg></span></div><div class="crm-metric-note">Customer collections overdue</div></article>
                 <article class="crm-metric-card crm-metric-purple"><div class="crm-metric-top"><div><span class="crm-metric-label">Overdue payables</span><strong class="crm-metric-value" x-text="money(data.overduePayablePaise)">₹0.00</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><path d="M6 4h12M6 8h12M8 4c7 0 7 9 0 9H7l8 7"/></svg></span></div><div class="crm-metric-note">Supplier payments overdue</div></article>
                 <article class="crm-metric-card crm-metric-amber"><div class="crm-metric-top"><div><span class="crm-metric-label">Low / zero stock</span><strong class="crm-metric-value" x-text="number(data.lowStockCount)">0</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v14H4z"/><path d="M4 10h16M9 14h6"/></svg></span></div><div class="crm-metric-note">Inventory balances needing attention</div></article>
               </section>
 
-              <section class="crm-dashboard-grid">
+              <section x-show="!loading && !error" x-cloak class="crm-dashboard-grid">
                 <div class="card crm-data-card">
                   <div class="card-header crm-card-heading">
                     <div><h2 class="card-title mb-1">Recent sales orders</h2><p class="text-muted mb-0">Latest B2B customer orders created by the Findoly team.</p></div>
                     <a href="/orders" class="btn btn-light btn-sm">View all orders</a>
                   </div>
                   <div class="table-responsive">
-                    <table class="table crm-table mb-0">
+                    <table class="table crm-table crm-dashboard-record-table mb-0">
                       <thead><tr><th>Order</th><th>Customer</th><th>Status</th><th class="text-end">Total</th><th>Created</th></tr></thead>
                       <tbody>
                         <template x-if="loading"><tr><td colspan="5"><div class="crm-table-loading"><span></span><span></span><span></span></div></td></tr></template>
@@ -94,7 +94,7 @@
       </div>
     </div>
     <script nonce="<%= cspNonce %>">
-      function dashboardPage(){return{data:{},loading:true,error:'',number(v){return new Intl.NumberFormat('en-IN').format(Number(v||0));},async load(){this.loading=true;try{this.data=(await apiFetch('/api/dashboard')).data||{};}catch(e){this.error=e.message;}finally{this.loading=false;}}}}
+      function dashboardPage(){return{data:{},loading:true,error:'',number(v){return new Intl.NumberFormat('en-IN').format(Number(v||0));},async load(){this.loading=true;this.error='';try{this.data=(await apiFetch('/api/dashboard')).data||{};}catch(e){this.error=e.message;}finally{this.loading=false;}}}}
     </script>
     <%- include('partials/scripts') %>
   </body>

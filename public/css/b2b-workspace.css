@@ -113,3 +113,15 @@
  .content :is(button,a,input,select,textarea):focus-visible{outline-width:3px}
  .content .crm-status{border:1px solid currentColor}
 }
+
+/* Consistent mobile record and finance table containers. */
+@media(max-width:767.98px){
+ .content .crm-orders-mobile-card{
+  background:var(--crm-user-card-bg,#fff);
+  border-color:var(--crm-user-card-border,#dfe3e8)!important;
+  border-radius:.75rem!important;
+ }
+ .content .crm-order-mobile-actions{justify-content:flex-end;min-width:0}
+ .content .crm-orders-mobile-card .btn{min-height:44px}
+ .content .crm-dashboard-record-table{min-width:36rem}
+}
