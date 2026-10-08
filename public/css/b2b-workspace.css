@@ -125,3 +125,10 @@
  .content .crm-orders-mobile-card .btn{min-height:44px}
  .content .crm-dashboard-record-table{min-width:36rem}
 }
+
+/* Financial ledger tables remain scrollable locally, not across the page. */
+@media(max-width:767.98px){
+ .content .crm-finance-table{min-width:42rem}
+ .content .crm-finance-table th,.content .crm-finance-table td{white-space:nowrap}
+ .content .crm-finance-table td:first-child,.content .crm-finance-table th:first-child{position:sticky;left:0;background:var(--crm-user-card-bg,#fff);z-index:1}
+}
