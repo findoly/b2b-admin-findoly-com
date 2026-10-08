@@ -37,7 +37,7 @@
 <% if (can('suppliers.pricing')) { %>
 <div class="col-lg-7"><div class="card crm-data-card h-100"><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Supplier product offer</h2><p class="text-muted mb-0">Location-specific purchase price, MOQ, GST and lead time.</p></div></div><div class="card-body"><div class="row g-3">
 <div class="col-md-6"><label class="form-label" for="supplier-field-9">Supplier location</label><select id="supplier-field-9" class="form-select" x-model="offerForm.supplierLocationId"><option value="">Select location</option><template x-for="l in locations" :key="l.supplierLocationId"><option :value="l.supplierLocationId" x-text="joinTruthy([l.name,l.city])"></option></template></select></div>
-<div class="col-md-6"><label class="form-label">Product</label><div class="input-group mb-2"><input class="form-control" placeholder="Search product" x-model="productSearch" @keyup.enter="searchProducts()"><button class="btn btn-light" type="button" @click="searchProducts()">Find</button></div><select class="form-select" x-model="offerForm.productId"><option value="">Select product</option><template x-for="p in products" :key="p.productId"><option :value="p.productId" x-text="p.name+' · '+p.sku"></option></template></select></div>
+<div class="col-md-6"><label class="form-label" for="supplier-offer-product">Product</label><div class="input-group mb-2"><input class="form-control" aria-label="Search products for supplier offer" placeholder="Search product" x-model="productSearch" @keyup.enter="searchProducts()"><button class="btn btn-light" type="button" @click="searchProducts()">Find</button></div><select id="supplier-offer-product" class="form-select" x-model="offerForm.productId"><option value="">Select product</option><template x-for="p in products" :key="p.productId"><option :value="p.productId" x-text="p.name+' · '+p.sku"></option></template></select></div>
 <div class="col-md-3"><label class="form-label" for="supplier-field-10">Buy price ₹</label><input id="supplier-field-10" type="number" min="0" step="0.01" class="form-control" x-model.number="offerForm.purchasePriceRupees"></div>
 <div class="col-md-3"><label class="form-label" for="supplier-field-11">GST %</label><input id="supplier-field-11" type="number" min="0" max="100" step="0.01" class="form-control" x-model.number="offerForm.gstPercent"></div>
 <div class="col-md-3"><label class="form-label" for="supplier-field-12">MOQ</label><input id="supplier-field-12" type="number" min="1" class="form-control" x-model.number="offerForm.moq"></div>
@@ -56,7 +56,7 @@
 </div>
 </div><%- include('partials/footer') %></div></div></div>
 <script nonce="<%= cspNonce %>">function suppliersPage(){return{
-...crmPager('loadSuppliers'),suppliers:[],products:[],selected:null,locations:[],history:[],error:'',search:'',productSearch:'',showSupplierForm:supplierSaving:false,false,
+...crmPager('loadSuppliers'),suppliers:[],products:[],selected:null,locations:[],history:[],error:'',search:'',productSearch:'',showSupplierForm:false,supplierSaving:false,
 supplierForm:{businessName:'',contactName:'',mobile:'',email:'',gstin:'',paymentTermDays:0,documentKeys:[]},
 locationForm:{name:'',line1:'',city:'',state:'Maharashtra',pincode:''},
 offerForm:{supplierLocationId:'',productId:'',purchasePriceRupees:0,gstPercent:18,moq:1,packQuantity:1,leadTimeDays:0,priceValidUntil:'',reason:''},

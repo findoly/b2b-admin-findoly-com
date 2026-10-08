@@ -24,7 +24,7 @@
 </tbody></table></div><%- include('partials/pager') %></div>
 </div><%- include('partials/footer') %></div></div></div>
 <script nonce="<%= cspNonce %>">function employeesPage(){return{
-...crmPager('loadEmployees'),employees:[],roles:[],loading:true,error:'',showForm:employeeSaving:false,false,search:'',pendingStatusId:'',form:{name:'',mobile:'',email:'',employeeCode:'',designation:'',department:'',roleId:'',deliveryEligible:true},
+...crmPager('loadEmployees'),employees:[],roles:[],loading:true,error:'',showForm:false,employeeSaving:false,search:'',pendingStatusId:'',form:{name:'',mobile:'',email:'',employeeCode:'',designation:'',department:'',roleId:'',deliveryEligible:true},
 async load(){try{const r=(await apiFetch('/api/roles')).data;this.roles=r.items||[];await this.loadEmployees()}catch(e){this.error=e.message}finally{this.loading=false}},
 async loadEmployees(){this.loading=true;try{const q=new URLSearchParams({limit:String(this.pageSize),page:String(this.page)});if(this.search)q.set('search',this.search);const data=(await apiFetch('/api/employees?'+q)).data;this.employees=data.items||[];this.setPageMeta(data)}catch(e){this.error=e.message}finally{this.loading=false}},searchEmployees(){this.resetPage();return this.loadEmployees()},
 roleName(id){return this.roles.find(x=>x.roleId===id)?.name||id},
