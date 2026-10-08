@@ -27,3 +27,10 @@
 @media(max-width:991.98px){
  .crm-filter-card .btn,.crm-filter-card .form-control,.crm-filter-card .form-select{min-height:44px}
 }
+
+/* Mobile order wizard: neutralize the shared 18rem flex-basis when the heading stacks. */
+@media(max-width:767.98px){
+ .crm-order-timeline-card .crm-order-wizard-heading{align-items:flex-start;gap:.75rem}
+ .crm-order-timeline-card .crm-order-wizard-heading>:first-child{flex:0 1 auto;width:100%}
+ .crm-order-timeline-card .crm-order-step-count{flex:0 0 auto;width:100%;margin-top:0}
+}
