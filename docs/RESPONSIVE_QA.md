@@ -28,6 +28,7 @@ This document complements automated source-contract tests. **These checks are no
 - [ ] **Reports and S3:** Loading, empty states, upload progress and error feedback remain readable on phone and laptop.
 - [ ] **Theme/accessibility:** Test default and dark/high-contrast presets, 200% zoom, keyboard focus visibility, reduced motion and accessible text contrast.
 - [ ] **Laptop:** Verify metrics, form grids and table headings at 1024, 1280 and 1440px with no awkward card wrapping.
+- [ ] **U13–U17/U22:** Verify Returns and Audit mobile list cards, field labels, focused validation errors, loading/empty/retry states, and disabled in-flight create/process actions. Confirm supplier, pricing, warehouse and employee forms cannot submit twice.
 - [ ] **Regressions:** Test order creation, finance invoice/payment, sidebar permissions and fulfilment transitions; business logic remains unchanged.
 
 ## Automated checks
