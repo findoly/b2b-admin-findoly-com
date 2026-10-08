@@ -30,7 +30,7 @@
 <script nonce="<%= cspNonce %>">function storagePage(){return{
 config:{},file:null,prefix:'public/b2b/products/',lastKey:'',downloadKey:'',downloadUrl:'',uploading:false,error:'',
 async load(){try{this.config=(await apiFetch('/api/storage/config')).data||{}}catch(e){this.error=e.message}},
-async upload(){if(!this.file)return;this.uploading=true;try{const name=Date.now()+'-'+this.file.name;const x=(await apiFetch('/api/storage/upload-url',{method:'POST',body:JSON.stringify({prefix:this.prefix,fileName:name,contentType:this.file.type||'application/octet-stream',sizeBytes:this.file.size})})).data;const r=await fetch(x.url,{method:'PUT',headers:x.headers,body:this.file});if(!r.ok)throw new Error('S3 upload failed');this.lastKey=x.key;showCrmToast('File uploaded')}catch(e){this.error=e.message;showCrmToast(e.message,'error')}finally{this.uploading=false}},
+async upload(){if(!this.file)return;this.uploading=true;try{const name=Date.now()+'-'+this.file.name;const x=(await apiFetch('/api/storage/upload-url',{method:'POST',body:JSON.stringify({prefix:this.prefix,fileName:name,contentType:this.file.type||'application/octet-stream',sizeBytes:this.file.size})})).data;await putPresignedUpload(x,this.file);this.lastKey=x.key;showCrmToast('File uploaded')}catch(e){this.error=e.message;showCrmToast(e.message,'error')}finally{this.uploading=false}},
 async download(){try{const x=(await apiFetch('/api/storage/download-url',{method:'POST',body:JSON.stringify({key:this.downloadKey})})).data;this.downloadUrl=x.url}catch(e){this.error=e.message;showCrmToast(e.message,'error')}}
 }}</script><%- include('partials/scripts') %>
 </body></html>

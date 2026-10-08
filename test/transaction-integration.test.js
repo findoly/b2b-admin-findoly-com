@@ -80,6 +80,32 @@ test("order confirmation reserves stock inside a real Mongo transaction",async(t
   assert.ok(movement);
   assert.equal(movement.quantityDelta,3);
 
+  await t.test("concurrent picking cannot consume another order's reservation",async()=>{
+    const secondId=uuid();
+    await SalesOrder.create({
+      salesOrderId:secondId,orderNumber:`SO-TXN-SECOND-${Date.now()}`,customerId,
+      customerSnapshot:{businessName:"Transaction Test Customer",mobile:"9000000001"},
+      deliveryAddressSnapshot:{line1:"1 Test Road",city:"Mumbai",state:"Maharashtra",pincode:"400001"},
+      assignedEmployeeId:actor,warehouseId,status:"created",approvalStatus:"not_required",
+      lines:[{productId,productName:"Test Product",sku:"TXN-SKU",quantity:2,unitPricePaise:5000,gstRateBps:1800}],
+      taxablePaise:10000,gstPaise:1800,totalPaise:11800,gstTreatment:"intra_state",
+      createdBy:actor,updatedBy:actor
+    });
+    await orderService.confirm(secondId,{employeeId:actor,permissions:["orders.create"]});
+    const results=await Promise.allSettled([
+      orderService.advanceFulfilment(salesOrderId,"picking",actor),
+      orderService.advanceFulfilment(salesOrderId,"picking",actor)
+    ]);
+    assert.equal(results.filter(x=>x.status==="fulfilled").length,1);
+    assert.equal(results.filter(x=>x.status==="rejected").length,1);
+    const current=await InventoryBalance.findOne({warehouseId,productId}).lean();
+    assert.equal(current.availableQty,5);
+    assert.equal(current.reservedQty,2,"another order's reservation must stay intact");
+    assert.equal(current.pickedQty,3);
+    assert.equal(await InventoryMovement.countDocuments({referenceId:salesOrderId,movementType:"pick"}),1);
+    assert.equal((await SalesOrder.findOne({salesOrderId}).lean()).status,"picking");
+  });
+
   await Employee.create({employeeId:actor,name:"Pricing Test Employee",mobile:"9000000002",normalizedMobile:"9000000002",roleId:uuid()});
   const admin={employeeId:actor,permissions:["orders.create"]};
   const now=Date.now();

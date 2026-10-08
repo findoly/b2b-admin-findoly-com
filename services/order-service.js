@@ -119,5 +119,31 @@ async function cancel(id,input,actor){
     order.status="cancelled";order.cancellationReason=String(input?.reason||"").trim().slice(0,1000);order.cancelledBy=actor;order.cancelledAt=new Date();order.updatedBy=actor;await order.save({session});return order.toObject();
   });}finally{await session.endSession();}
 }
-async function advanceFulfilment(id,target,actor){const allowed={stock_ready:"picking",picking:"packed",packed:"ready_for_dispatch"};const order=await SalesOrder.findOne({salesOrderId:id});if(!order)throw Object.assign(new Error("Sales order not found"),{status:404});if(allowed[order.status]!==target)throw Object.assign(new Error(`Cannot move order from ${order.status} to ${target}`),{status:409});const session=await mongoose.startSession();try{return await session.withTransaction(async()=>{if(target==="picking"||target==="packed"){for(const line of order.lines){const balance=await InventoryBalance.findOne({warehouseId:order.warehouseId,productId:line.productId}).session(session);if(!balance)throw Object.assign(new Error("Inventory balance not found"),{status:409});if(target==="picking"){if(balance.reservedQty<line.quantity)throw Object.assign(new Error(`Reserved stock is insufficient for ${line.sku}`),{status:409});balance.reservedQty-=line.quantity;balance.pickedQty+=line.quantity;await InventoryMovement.create([{warehouseId:order.warehouseId,productId:line.productId,movementType:"pick",quantityDelta:line.quantity,bucket:"picked",referenceType:"sales_order",referenceId:order.salesOrderId,reason:"Order picked",actorEmployeeId:actor}],{session});}else{if(balance.pickedQty<line.quantity)throw Object.assign(new Error(`Picked stock is insufficient for ${line.sku}`),{status:409});balance.pickedQty-=line.quantity;balance.packedQty+=line.quantity;await InventoryMovement.create([{warehouseId:order.warehouseId,productId:line.productId,movementType:"pack",quantityDelta:line.quantity,bucket:"packed",referenceType:"sales_order",referenceId:order.salesOrderId,reason:"Order packed",actorEmployeeId:actor}],{session});}balance.updatedBy=actor;await balance.save({session});}}order.status=target;order.updatedBy=actor;await order.save({session});return order.toObject();});}finally{await session.endSession();}}
+async function advanceFulfilment(id,target,actor){
+  const allowed={stock_ready:"picking",picking:"packed",packed:"ready_for_dispatch"};
+  const session=await mongoose.startSession();
+  try{return await session.withTransaction(async()=>{
+    const order=await SalesOrder.findOne({salesOrderId:id}).session(session);
+    if(!order)throw Object.assign(new Error("Sales order not found"),{status:404});
+    if(allowed[order.status]!==target)throw Object.assign(new Error(`Cannot move order from ${order.status} to ${target}`),{status:409});
+    if(target==="picking"||target==="packed"){
+      for(const line of order.lines){
+        const balance=await InventoryBalance.findOne({warehouseId:order.warehouseId,productId:line.productId}).session(session);
+        if(!balance)throw Object.assign(new Error("Inventory balance not found"),{status:409});
+        if(target==="picking"){
+          if(balance.reservedQty<line.quantity)throw Object.assign(new Error(`Reserved stock is insufficient for ${line.sku}`),{status:409});
+          balance.reservedQty-=line.quantity;balance.pickedQty+=line.quantity;
+          await InventoryMovement.create([{warehouseId:order.warehouseId,productId:line.productId,movementType:"pick",quantityDelta:line.quantity,bucket:"picked",referenceType:"sales_order",referenceId:order.salesOrderId,reason:"Order picked",actorEmployeeId:actor}],{session});
+        }else{
+          if(balance.pickedQty<line.quantity)throw Object.assign(new Error(`Picked stock is insufficient for ${line.sku}`),{status:409});
+          balance.pickedQty-=line.quantity;balance.packedQty+=line.quantity;
+          await InventoryMovement.create([{warehouseId:order.warehouseId,productId:line.productId,movementType:"pack",quantityDelta:line.quantity,bucket:"packed",referenceType:"sales_order",referenceId:order.salesOrderId,reason:"Order packed",actorEmployeeId:actor}],{session});
+        }
+        balance.updatedBy=actor;await balance.save({session});
+      }
+    }
+    order.status=target;order.updatedBy=actor;await order.save({session});
+    return order.toObject();
+  });}finally{await session.endSession();}
+}
 module.exports={list,get,warehouseOptions,warehouseAvailability,create,approve,confirm,allocate,recheckStock,cancel,advanceFulfilment};
