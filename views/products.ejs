@@ -9,10 +9,12 @@
 <section class="card crm-filter-card mb-3">
   <div class="crm-filter-bar">
     <div class="crm-search-control"><label class="visually-hidden" for="product-list-search">Search product catalogue</label><input id="product-list-search" class="form-control" placeholder="Search name, SKU, brand or barcode" x-model="search" @keyup.enter="searchProducts()"></div>
-    <label class="crm-filter-field"><span>Status</span><select x-model="statusFilter" @change="searchProducts()"><option value="">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+    <label class="crm-filter-field"><span>Status</span><select aria-label="Product status filter" x-model="statusFilter" @change="searchProducts()"><option value="">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
     <div class="crm-filter-actions"><button class="btn btn-primary" @click="searchProducts()">Search</button></div>
   </div>
 </section>
+<div class="crm-filter-summary mb-3" x-show="search || statusFilter" x-cloak role="status" aria-live="polite"><span>Filtered products · use Clear to see the whole catalogue</span><button type="button" class="btn btn-light btn-sm" @click="search='';statusFilter='';searchProducts()">Clear filters</button></div>
+
 <div class="card crm-data-card">
 <div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Product catalogue</h2><p class="text-muted mb-0">Search the master catalogue and open a dedicated product record.</p></div></div>
 <div class="table-responsive"><table class="table crm-table crm-mobile-records align-middle mb-0"><thead><tr><th>Product</th><th>Category</th><th>Unit / pack</th><th>Gallery</th><th class="text-end">MRP</th><th class="text-end">Reference</th><th>Status</th><th class="text-end">Actions</th></tr></thead><tbody>

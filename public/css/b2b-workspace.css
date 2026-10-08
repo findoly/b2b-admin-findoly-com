@@ -184,3 +184,14 @@
 @media(max-width:767.98px){
  .content .crm-data-card>.crm-conditional-flex.card-footer{flex-wrap:wrap;row-gap:.5rem}
 }
+
+/* U18–U23: in-page workflow navigation, actionable metrics and filter context. */
+.content .crm-section-jump{display:flex;flex-wrap:wrap;gap:var(--b2b-space-1,.5rem);padding:var(--b2b-space-2,1rem);border:1px solid var(--crm-user-card-border,var(--crm-shell-border,#e2e8f0));border-radius:var(--bs-border-radius,.5rem);background:var(--crm-user-card-bg,#fff)}
+.content .crm-section-jump a{display:inline-flex;align-items:center;min-height:44px;padding:.5rem .875rem;border:1px solid var(--crm-user-card-border,var(--crm-shell-border,#e2e8f0));border-radius:.5rem;color:var(--crm-user-sidebar-text,var(--bs-body-color));font-weight:600;text-decoration:none;overflow-wrap:anywhere}
+.content .crm-section-jump a:hover{background:var(--crm-user-hover-bg,rgba(99,102,241,.08));color:var(--crm-user-accent,#1877f2)}
+.content .crm-section-jump a:focus-visible,.content .crm-metric-action:focus-visible,.content .crm-filter-summary .btn:focus-visible{outline:2px solid var(--crm-user-accent,#1877f2);outline-offset:3px}
+.content [id^="finance-"],.content [id^="customer-360-"]{scroll-margin-top:6rem}
+.content .crm-metric-action{display:inline-flex;align-items:center;gap:.5rem;min-height:44px;margin-top:.5rem;color:var(--crm-user-accent,#1877f2);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.content .crm-filter-summary{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--b2b-space-1,.5rem);padding:.5rem 1rem;border:1px solid var(--crm-user-card-border,var(--crm-shell-border,#e2e8f0));border-radius:.5rem;background:var(--crm-user-card-bg,#fff)}
+.content .crm-filter-summary .btn{min-height:44px}
+@media(max-width:767.98px){.content .crm-section-jump{padding:var(--b2b-space-1,.5rem)}.content .crm-section-jump a{flex:1 1 auto;justify-content:center}.content .crm-filter-summary{align-items:stretch}.content .crm-filter-summary .btn{width:100%}}
