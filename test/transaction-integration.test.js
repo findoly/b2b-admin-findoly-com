@@ -107,6 +107,27 @@ test("order confirmation reserves stock inside a real Mongo transaction",async(t
   });
 
   await Employee.create({employeeId:actor,name:"Pricing Test Employee",mobile:"9000000002",normalizedMobile:"9000000002",roleId:uuid()});
+  await t.test("payment idempotency replays a missing paidAt without double recording cash",async()=>{
+    const finance=require("../services/finance-service");
+    const Payment=require("../models/Payment");
+    const idempotencyKey="qa-payment-retry-"+uuid();
+    const payload={idempotencyKey,direction:"receivable",customerId,amountPaise:1500,mode:"bank_transfer",reference:"QA RETRY WITHOUT DATE",allocations:[]};
+    const original=await finance.recordPayment(payload,actor);
+    await new Promise(resolve=>setTimeout(resolve,15));
+    const replay=await finance.recordPayment(payload,actor);
+    assert.equal(replay.paymentId,original.paymentId);
+    assert.equal(await Payment.countDocuments({idempotencyKey}),1);
+    await assert.rejects(finance.recordPayment({...payload,amountPaise:1600},actor),err=>err.status===409&&err.code==="IDEMPOTENCY_KEY_REUSED");
+  });
+  await t.test("manual adjustment rejects workflow-managed stock without mutation",async()=>{
+    const inventory=require("../services/inventory-service");
+    const before=await InventoryBalance.findOne({warehouseId,productId}).lean();
+    await assert.rejects(inventory.adjust({warehouseId,productId,bucket:"reserved",quantityDelta:-1},actor),err=>err.status===409&&err.code==="WORKFLOW_STOCK_ADJUSTMENT_FORBIDDEN");
+    const after=await InventoryBalance.findOne({warehouseId,productId}).lean();
+    assert.equal(after.reservedQty,before.reservedQty);
+    assert.equal(after.pickedQty,before.pickedQty);
+  });
+
   const admin={employeeId:actor,permissions:["orders.create"]};
   const now=Date.now();
   const baseAgreement={customerId,productId,unitPricePaise:4200,minimumQuantity:5,validFrom:new Date(now-60000),validUntil:null,approvalStatus:"approved",active:true,negotiatedBy:actor,createdBy:actor,updatedBy:actor};
