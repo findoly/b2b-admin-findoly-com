@@ -7,7 +7,10 @@
 %>
 <div id="crmPrimaryNavigation" class="sidebar sidebar-main sidebar-expand-lg crm-sidebar" :role="mobileViewport ? 'dialog' : 'navigation'" :aria-modal="mobileViewport && sidebarOpen ? 'true' : null" aria-label="Primary navigation" :inert="mobileViewport && !sidebarOpen" :class="{'crm-sidebar-open': sidebarOpen, 'crm-sidebar-collapsed': sidebarCollapsed}" :aria-hidden="mobileViewport && !sidebarOpen ? 'true' : 'false'" x-effect="syncMobileDrawer(sidebarOpen)" @keydown.escape.window="closeSidebar()" @keydown.tab="trapSidebarFocus($event)">
   <div class="sidebar-content">
-    <div class="crm-sidebar-mobile-head d-lg-none"><div class="d-flex align-items-center gap-2"><img src="/images/findoly-logo.png" alt="Findoly" class="crm-sidebar-brand-logo"><strong>B2B navigation</strong></div><button type="button" class="crm-sidebar-close" @click="closeSidebar()" aria-label="Close navigation">×</button></div>
+    <div class="crm-sidebar-mobile-head d-lg-none">
+      <div class="crm-sidebar-brand"><img src="/images/findoly-logo.png" alt="Findoly" class="crm-sidebar-brand-logo"><strong class="crm-sidebar-mobile-title">Menu</strong></div>
+      <button type="button" class="crm-sidebar-close" @click="closeSidebar()" aria-label="Close navigation"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
     <div class="crm-sidebar-desktop-actions d-none d-lg-flex"><button type="button" class="crm-sidebar-collapse" @click="toggleSidebar()" :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'" :aria-expanded="(!sidebarCollapsed).toString()" :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"><svg viewBox="0 0 24 24" aria-hidden="true" :class="{'is-collapsed': sidebarCollapsed}"><path d="m14 7-5 5 5 5"/></svg><span class="crm-sidebar-collapse-label" x-text="sidebarCollapsed ? 'Expand' : 'Collapse'">Collapse</span></button></div>
     <div class="sidebar-section pt-2"><ul class="nav nav-sidebar" data-nav-type="accordion">
       <% if (showWorkspace) { %><li class="nav-item-header"><span>Workspace</span></li><% } %>
