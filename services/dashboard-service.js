@@ -12,8 +12,9 @@ async function lowStock(){
   const available=new Map(stockRows.map(row=>[row._id,Number(row.availableQty||0)]));
   for(const product of batch){
    const item={productId:product.productId,name:product.name,sku:product.sku,reorderLevel:Number(product.reorderLevel||0),availableQty:Number(available.get(product.productId)||0)};
-   if(item.availableQty>item.reorderLevel)continue;
-   count++;items.push(item);items.sort(compare);if(items.length>10)items.pop();
+   if(item.availableQty<=item.reorderLevel){
+    count++;items.push(item);items.sort(compare);if(items.length>10)items.pop();
+   }
   }
   batch=[];
  }
