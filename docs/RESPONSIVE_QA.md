@@ -46,3 +46,10 @@ For each viewport, capture a screenshot of the order form header/timeline, list 
 - [ ] Confirm exact Delivery → Sales Order link, shareable filtered Orders/Delivery/Products/Pricing/Inventory URL state and clear/reset behavior.
 - [ ] Inventory-only role can load names/SKUs without product.view; unauthorized product links are absent. Check empty/error/retry and stock page-scope notice.
 - [ ] Procurement demand blocks incompatible selection early, clear selection, loading, retry, 44px mobile checkbox and Create controls.
+
+## U35/U36/U39/U42/U43 progressive action UI (authenticated browser sign-off pending)
+- [ ] Action Center shows only nonzero tasks that match the logged-in employee's permissions; no urgent work produces a clear empty state.
+- [ ] Dashboard secondary metrics and routine shortcuts expand with keyboard and mobile screen readers; existing KPI permission links remain accurate.
+- [ ] Finance summary arrives before account lookup/ledger loading, and record fetch failures expose retry without corrupting settled balance data or payment state.
+- [ ] Sales Insights hides stale KPI/ranking values while applying filters, exposes an honest retry/error state; test network failure and refresh.
+- [ ] Test 360/375/390/430, 768/1024, 1280/1440px, 200% zoom, dark/light/high-contrast, keyboard/screen reader and reduced-motion.

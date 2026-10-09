@@ -27,13 +27,14 @@
             <main x-data="dashboardPage()" x-init="load()">
               <div x-show="error" x-cloak role="alert" class="alert alert-danger"><div class="d-flex flex-wrap justify-content-between align-items-center gap-2"><span x-text="error"></span><button type="button" class="btn btn-sm btn-outline-danger" @click="load()" :disabled="loading">Retry dashboard</button></div></div><div x-show="loading" x-cloak class="card crm-data-card mb-3" role="status" aria-live="polite"><div class="card-body"><div class="crm-table-loading"><span></span><span></span><span></span></div><span class="visually-hidden">Loading dashboard metrics</span></div></div>
 
-<section class="crm-workflow-header mb-3" aria-label="Action-oriented workspace"><div><span class="crm-workflow-eyebrow">Your next steps</span><h2 class="h4 mb-1">Business action center</h2><p class="text-muted mb-0">Start with the work that needs attention. Every action opens a real Findoly workflow.</p></div><% if(can('reports.view')) { %><a class="btn btn-light" href="/reports">View reports →</a><% } %></section>
+<section x-show="!loading && !error" x-cloak class="crm-workflow-header mb-3" aria-label="Action-oriented workspace"><div><span class="crm-workflow-eyebrow">Your next steps</span><h2 class="h4 mb-1">Business action center</h2><p class="text-muted mb-0">Start with the work that needs attention. Every action opens a real Findoly workflow.</p></div><% if(can('reports.view')) { %><a class="btn btn-light" href="/reports">View reports →</a><% } %></section>
 <section x-show="!loading && !error" x-cloak class="crm-attention-grid mb-4" aria-label="Operational actions">
- <% if(can('procurement.view')) { %><a class="crm-attention-card crm-soft-purple" href="/procurement/demand"><span class="crm-attention-tag">Sourcing</span><strong x-text="number(data.pendingProcurement)">0</strong><span>Orders needing procurement</span><b>Open demand →</b></a><% } %>
- <% if(can('delivery.view')) { %><a class="crm-attention-card crm-soft-green" href="/delivery"><span class="crm-attention-tag">Fulfilment</span><strong x-text="number(data.readyDispatch)">0</strong><span>Orders ready to dispatch</span><b>Manage delivery →</b></a><% } %>
- <% if(can('pricing.view')) { %><a class="crm-attention-card crm-soft-orange" href="/pricing"><span class="crm-attention-tag">Approvals</span><strong x-text="number(data.pendingPrices)">0</strong><span>Prices awaiting review</span><b>Review requests →</b></a><% } %>
- <% if(can('inventory.view')) { %><a class="crm-attention-card crm-soft-red" href="/inventory"><span class="crm-attention-tag">Inventory</span><strong x-text="number(data.lowStockCount)">0</strong><span>Products at or below reorder level</span><b>Check stock →</b></a><% } %>
- <% if(can('finance.view')) { %><a class="crm-attention-card crm-soft-blue" href="/finance#finance-invoices"><span class="crm-attention-tag">Collections</span><strong x-text="money(data.overdueReceivablePaise)">₹0.00</strong><span>Overdue customer invoices</span><b>Review receivables →</b></a><% } %>
+ <% if(can('procurement.view')) { %><a x-show="Number(data.pendingProcurement||0)>0" class="crm-attention-card crm-soft-purple" href="/procurement/demand"><span class="crm-attention-tag">Sourcing</span><strong x-text="number(data.pendingProcurement)">0</strong><span>Orders needing procurement</span><b>Open demand →</b></a><% } %>
+ <% if(can('delivery.view')) { %><a x-show="Number(data.readyDispatch||0)>0" class="crm-attention-card crm-soft-green" href="/delivery"><span class="crm-attention-tag">Fulfilment</span><strong x-text="number(data.readyDispatch)">0</strong><span>Orders ready to dispatch</span><b>Manage delivery →</b></a><% } %>
+ <% if(can('pricing.view')) { %><a x-show="Number(data.pendingPrices||0)>0" class="crm-attention-card crm-soft-orange" href="/pricing"><span class="crm-attention-tag">Approvals</span><strong x-text="number(data.pendingPrices)">0</strong><span>Prices awaiting review</span><b>Review requests →</b></a><% } %>
+ <% if(can('inventory.view')) { %><a x-show="Number(data.lowStockCount||0)>0" class="crm-attention-card crm-soft-red" href="/inventory"><span class="crm-attention-tag">Inventory</span><strong x-text="number(data.lowStockCount)">0</strong><span>Products at or below reorder level</span><b>Check stock →</b></a><% } %>
+ <% if(can('finance.view')) { %><a x-show="Number(data.overdueReceivablePaise||0)>0" class="crm-attention-card crm-soft-blue" href="/finance#finance-invoices"><span class="crm-attention-tag">Collections</span><strong x-text="money(data.overdueReceivablePaise)">₹0.00</strong><span>Overdue customer invoices</span><b>Review receivables →</b></a><% } %>
+<p x-show="!hasAttention()" class="crm-work-queue-empty" role="status">No urgent items in your permitted workflows. Use the shortcuts below for routine work.</p>
 </section>
 <section x-show="!loading && !error" x-cloak class="crm-visual-grid mb-4" aria-label="Sales trend and order pipeline">
  <article class="card crm-data-card crm-visual-card"><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Daily taxable sales trend</h2><p class="text-muted mb-0">Last 14 India-calendar days · taxable sales value, before GST and returns</p></div><% if(can('reports.view')) { %><a class="btn btn-light btn-sm" href="/reports">Open reports</a><% } %></div>
@@ -42,7 +43,8 @@
  <div class="card-body crm-donut-layout"><div class="crm-donut-wrap"><div class="crm-donut" :style="orderDonutStyle()" role="img" :aria-label="orderDonutLabel()"><span><strong x-text="number(orderStatusTotal())">0</strong><small>orders</small></span></div></div><div class="crm-donut-legend"><template x-for="item in orderStatusSlices()" :key="item.status"><div class="crm-donut-legend-row"><span class="crm-chart-dot" :style="item.dotStyle"></span><span x-text="item.label"></span><strong x-text="number(item.count)"></strong><% if(can('orders.view')) { %><a x-show="item.href" :href="item.href" :aria-label="item.actionLabel">View</a><% } %></div></template></div></div></article>
 </section>
 <% if(can('products.view')) { %><section x-show="!loading && !error && (data.lowStockItems||[]).length" x-cloak class="card crm-data-card mb-4" aria-label="Stock attention"><div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Stock needing attention</h2><p class="text-muted mb-0">Up to 10 products below their reorder threshold, across warehouses</p></div><% if(can('inventory.view')) { %><a href="/inventory" class="btn btn-light btn-sm">Stock balances</a><% } %></div><div class="card-body crm-risk-list"><template x-for="item in data.lowStockItems||[]" :key="item.productId"><a class="crm-risk-row" :href="'/products/'+item.productId"><span><strong x-text="item.name"></strong><small x-text="item.sku"></small></span><span><b x-text="number(item.availableQty)"></b> available / <span x-text="number(item.reorderLevel)"></span> reorder</span><span aria-hidden="true">→</span></a></template></div></section><% } %>
-              <section x-show="!loading && !error" x-cloak class="crm-metric-grid mb-4" aria-label="B2B dashboard totals">
+              <details x-show="!loading && !error" x-cloak class="crm-dashboard-details mb-4"><summary>More business metrics <span aria-hidden="true">↓</span></summary>
+              <section class="crm-metric-grid mb-4" aria-label="B2B dashboard totals">
                 <article class="crm-metric-card crm-metric-blue">
                   <div class="crm-metric-top"><div><span class="crm-metric-label">Today's orders</span><strong class="crm-metric-value" x-text="number(data.todayOrders)">0</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span></div>
                   <div class="crm-metric-note">Sales orders created today</div><% if (can('orders.view')) { %><a class="crm-metric-action" href="/orders" aria-label="View orders">View orders <span aria-hidden="true">→</span></a><% } %>
@@ -67,6 +69,7 @@
                 <article class="crm-metric-card crm-metric-amber"><div class="crm-metric-top"><div><span class="crm-metric-label">Low / zero stock</span><strong class="crm-metric-value" x-text="number(data.lowStockCount)">0</strong></div><span class="crm-metric-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v14H4z"/><path d="M4 10h16M9 14h6"/></svg></span></div><div class="crm-metric-note">Inventory balances needing attention</div><% if (can('inventory.view')) { %><a class="crm-metric-action" href="/inventory" aria-label="Check inventory">Check inventory <span aria-hidden="true">→</span></a><% } %></article>
               </section>
 
+              </details>
               <section x-show="!loading && !error" x-cloak class="crm-dashboard-grid">
                 <div class="card crm-data-card">
                   <div class="card-header crm-card-heading">
@@ -94,12 +97,12 @@
                 </div>
                 <aside class="card crm-quick-card">
                   <div class="card-header crm-card-heading"><div><h2 class="card-title mb-1">Quick actions</h2><p class="text-muted mb-0">Common B2B operations.</p></div></div>
-                  <div class="crm-quick-actions">
+                  <details class="crm-dashboard-details crm-dashboard-shortcuts"><summary>Show routine shortcuts</summary><div class="crm-quick-actions">
                     <% if (can("orders.create")) { %><a href="/orders/new"><span><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span><div><strong>Create sales order</strong><small>Record a customer order</small></div><b>›</b></a><% } %>
                     <% if (can("procurement.view")) { %><a href="/procurement"><span><svg viewBox="0 0 24 24"><path d="M4 7h16l-2 12H6L4 7Z"/></svg></span><div><strong>Open procurement</strong><small>Purchase and receive stock</small></div><b>›</b></a><% } %>
                     <% if (can("inventory.view")) { %><a href="/inventory"><span><svg viewBox="0 0 24 24"><path d="M4 6h16v14H4zM4 10h16"/></svg></span><div><strong>Review inventory</strong><small>Check warehouse stock</small></div><b>›</b></a><% } %>
                     <% if (can("finance.view")) { %><a href="/finance"><span><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 9h16"/></svg></span><div><strong>Open finance</strong><small>Receivables and payables</small></div><b>›</b></a><% } %>
-                  </div>
+                  </div></details>
                 </aside>
               </section>
             </main>
@@ -111,6 +114,7 @@
     <script nonce="<%= cspNonce %>">
       const crmDashboardChartPalette=['#3478d4','#32a17b','#8766c7','#e49a47','#de6b72'];
 function dashboardPage(){return{data:{},loading:true,error:'',number(v){return new Intl.NumberFormat('en-IN').format(Number(v||0));},
+hasAttention(){return Boolean((<%= can('procurement.view') ? 'Number(this.data.pendingProcurement||0)+' : '' %><%= can('delivery.view') ? 'Number(this.data.readyDispatch||0)+' : '' %><%= can('pricing.view') ? 'Number(this.data.pendingPrices||0)+' : '' %><%= can('inventory.view') ? 'Number(this.data.lowStockCount||0)+' : '' %><%= can('finance.view') ? 'Number(this.data.overdueReceivablePaise||0)+' : '' %>0)>0);},
 dailySalesLabel(day){return day.day+': '+money(day.salesPaise)+' in '+this.number(day.orders)+' orders';},
 dailyBarStyle(day){const max=Math.max(1,...(this.data.salesTrend||[]).map(x=>Number(x.salesPaise||0)));return 'height:'+Math.max(day.salesPaise>0?4:0,Math.min(100,Math.max(0,Number(day.salesPaise||0))/max*100))+'%;';},
 orderStatusTotal(){return(this.data.orderStatusMix||[]).reduce((n,x)=>n+Number(x.count||0),0);},

@@ -230,3 +230,7 @@
 
 /* U34–U41: responsive workflow actions; no new themes. */
 @media(max-width:767.98px){.content .crm-filter-actions{display:flex;flex-wrap:wrap;gap:.5rem}.content .crm-data-card>.crm-card-heading>.d-flex{max-width:100%}.content .crm-data-card>.crm-card-heading .btn{min-height:44px}}
+
+/* U35/U36/U39/U42/U43: lightweight information hierarchy and state clarity. */
+.content .crm-dashboard-details{min-width:0}.content .crm-dashboard-details>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.65rem 1rem;border:1px solid var(--crm-user-card-border,#dbe2ea);border-radius:.6rem;background:var(--crm-user-card-bg,#fff);color:var(--crm-user-main-text,#1f2937);font-weight:600}.content .crm-dashboard-details>summary:focus-visible{outline:2px solid var(--crm-user-accent,#3478d4);outline-offset:2px}.content .crm-dashboard-details[open]>summary{margin-bottom:1rem}.content .crm-dashboard-shortcuts>summary{margin:0 1rem 1rem}.content .crm-work-queue-empty{padding:1rem;border:1px dashed var(--crm-user-card-border,#dbe2ea);border-radius:.6rem;color:var(--crm-user-muted-text,#64748b);background:var(--crm-user-card-bg,#fff)}.content .crm-attention-card[style*="display: none"]{display:none!important}
+@media(max-width:575.98px){.content .crm-dashboard-details>summary{min-height:48px}.content .crm-work-queue-empty{grid-column:1/-1}}
