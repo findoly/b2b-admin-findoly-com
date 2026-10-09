@@ -97,26 +97,50 @@
   function moneyFromRupees(value){return money(Math.round(Number(value||0)*100));}
   function bodyData(name,fallback=''){return document.body?.dataset?.[name]||fallback;}
   function setSafeHtml(element,html){if(element)element.innerHTML=String(html||'');}
-  function syncMobileDrawer(open){document.documentElement.classList.toggle('crm-mobile-drawer-open',Boolean(open));document.body.classList.toggle('crm-mobile-drawer-open',Boolean(open));}
+  function syncMobileDrawer(open){
+    const active=Boolean(open);
+    document.documentElement.classList.toggle('crm-mobile-drawer-open',active);
+    document.body.classList.toggle('crm-mobile-drawer-open',active);
+    // Leave the sidebar and its close button interactive while preventing
+    // keyboard/screen-reader interaction with the obscured page.
+    document.querySelector('.crm-topbar')?.toggleAttribute('inert',active);
+    document.querySelector('.content-wrapper')?.toggleAttribute('inert',active);
+  }
   function crmValue(value,path,fallback=''){let current=value;for(const key of String(path||'').split('.')){if(current===null||current===undefined)return fallback;current=current[key]}return current===null||current===undefined?fallback:current;}
   function crmList(value,path){const result=path?crmValue(value,path,[]):value;return Array.isArray(result)?result:[];}
   function eventFiles(event){return Array.from(event&&event.target&&event.target.files?event.target.files:[]);}
   function eventFirstFile(event){const files=eventFiles(event);return files.length?files[0]:null;}
 
   const CRM_SIDEBAR_COLLAPSED_KEY='leadops.crm.sidebar.collapsed.v1';
+  const CRM_MOBILE_NAV_QUERY='(max-width: 991.98px)';
   function readSidebarCollapsed(){try{return localStorage.getItem(CRM_SIDEBAR_COLLAPSED_KEY)==='1'}catch(_){return false}}
   function syncSidebarDocumentState(collapsed){document.documentElement.classList.toggle('crm-sidebar-saved-collapsed',Boolean(collapsed));}
   function crmShell(){return{
-    admin:window.__crmServerAdmin||{},shellError:'',sidebarOpen:false,sidebarCollapsed:readSidebarCollapsed(),mobileViewport:false,
+    admin:window.__crmServerAdmin||{},shellError:'',sidebarOpen:false,sidebarCollapsed:readSidebarCollapsed(),mobileViewport:false,mobileMediaQuery:null,
     Number,String,Boolean,Math,Date,Array,Object,money,safeDate,formatDate,formatDateOnly,shortDate,humanize,statusClass,showCrmToast,joinTruthy,reverseCopy,moneyFromRupees,bodyData,setSafeHtml,syncMobileDrawer,crmValue,crmList,eventFiles,eventFirstFile,
-    updateMobileViewport(){this.mobileViewport=window.innerWidth<992;if(!this.mobileViewport&&this.sidebarOpen)this.sidebarOpen=false;},
-    openSidebar(){if(!this.mobileViewport)return;this.sidebarOpen=true;this.$nextTick(()=>document.querySelector('.crm-sidebar-close')?.focus());},
-    closeSidebar(){const wasOpen=this.sidebarOpen;this.sidebarOpen=false;if(wasOpen&&this.mobileViewport)this.$nextTick(()=>document.querySelector('.crm-mobile-menu')?.focus());},
-    trapSidebarFocus(event){if(!this.mobileViewport||!this.sidebarOpen)return;const drawer=document.getElementById('crmPrimaryNavigation');const focusable=Array.from(drawer.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])')).filter(node=>node.getClientRects().length>0);if(!focusable.length){event.preventDefault();return}const first=focusable[0],last=focusable[focusable.length-1];if(event.shiftKey&&(document.activeElement===first||!drawer.contains(document.activeElement))){event.preventDefault();last.focus()}else if(!event.shiftKey&&(document.activeElement===last||!drawer.contains(document.activeElement))){event.preventDefault();first.focus()}},
+    isMobileViewport(){return (this.mobileMediaQuery||window.matchMedia(CRM_MOBILE_NAV_QUERY)).matches;},
+    updateMobileViewport(){this.mobileViewport=this.isMobileViewport();if(!this.mobileViewport){if(this.sidebarOpen)this.closeSidebarOnResize();syncMobileDrawer(false);}},
+    openSidebar(){if(!this.isMobileViewport())return;this.mobileViewport=true;this.sidebarOpen=true;this.$nextTick(()=>document.querySelector('.crm-sidebar-close')?.focus());},
+    closeSidebar(){this.finishClosingSidebar(true);},
+    closeSidebarOnResize(){
+      const drawer=document.getElementById('crmPrimaryNavigation');
+      const focusWasInside=Boolean(drawer?.contains(document.activeElement));
+      this.finishClosingSidebar(false);
+      if(focusWasInside)this.$nextTick(()=>document.querySelector('.crm-sidebar-collapse')?.focus());
+    },
+    finishClosingSidebar(restoreFocus){const wasOpen=this.sidebarOpen;this.sidebarOpen=false;if(wasOpen&&restoreFocus&&this.isMobileViewport())this.$nextTick(()=>document.querySelector('.crm-mobile-menu')?.focus());},
+    trapSidebarFocus(event){if(!this.mobileViewport||!this.sidebarOpen)return;const drawer=document.getElementById('crmPrimaryNavigation');if(!drawer)return;const focusable=Array.from(drawer.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])')).filter(node=>node.getClientRects().length>0);if(!focusable.length){event.preventDefault();return}const first=focusable[0],last=focusable[focusable.length-1];if(event.shiftKey&&(document.activeElement===first||!drawer.contains(document.activeElement))){event.preventDefault();last.focus()}else if(!event.shiftKey&&(document.activeElement===last||!drawer.contains(document.activeElement))){event.preventDefault();first.focus()}},
     async initShell(){
       syncSidebarDocumentState(this.sidebarCollapsed);
+      this.mobileMediaQuery=window.matchMedia(CRM_MOBILE_NAV_QUERY);
       this.updateMobileViewport();
-      window.addEventListener('resize',()=>this.updateMobileViewport(),{passive:true});
+      // A media-query change matches CSS exactly, including orientation/zoom.
+      const update=()=>this.updateMobileViewport();
+      if(this.mobileMediaQuery.addEventListener)this.mobileMediaQuery.addEventListener('change',update);
+      else this.mobileMediaQuery.addListener(update);
+      window.addEventListener('keydown',event=>{if(event.key==='Tab'&&this.sidebarOpen&&this.mobileViewport&&!document.getElementById('crmPrimaryNavigation')?.contains(document.activeElement))this.trapSidebarFocus(event);});
+      window.addEventListener('pageshow',()=>{this.updateMobileViewport();syncMobileDrawer(this.mobileViewport&&this.sidebarOpen);});
+      window.addEventListener('pagehide',()=>syncMobileDrawer(false));
       if(this.admin?.employeeId)return;
       try{this.admin=(await apiFetch('/api/auth/me')).data||{};}catch(e){this.shellError=e.message;}
     },
