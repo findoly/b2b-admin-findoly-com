@@ -26,7 +26,8 @@ test("N2/N3: shared responsive state is driven by one CSS-equivalent media query
   assert.match(s,/mobileMediaQuery\.addEventListener\('change',update\)/);
   assert.doesNotMatch(s,/window\.innerWidth<992/);
   assert.match(menu,/x-effect="syncMobileDrawer\(mobileViewport && sidebarOpen\)"/);
-  assert.match(menu,/@keydown\.tab\.window="trapSidebarFocus\(\$event\)"/);
+  assert.match(menu,/@keydown\.tab="trapSidebarFocus\(\$event\)"/);
+  assert.match(s,/window\.addEventListener\('keydown',event=>/);
   assert.match(bar,/:aria-expanded="sidebarOpen\.toString\(\)"/);
   for(const part of [".crm-topbar",".content-wrapper"])assert.ok(s.includes("document.querySelector('"+part+"')?.toggleAttribute('inert',active)"));
 });
@@ -39,7 +40,7 @@ function makeShell(){
  const query={matches:true,addEventListener:(name,callback)=>{handlers.query=callback}};
  const window={__crmServerAdmin:{employeeId:"employee"},matchMedia:()=>query,addEventListener:(event,callback)=>{handlers[event]=callback}};
  const context=vm.createContext({document,window,location:{pathname:"/dashboard"},localStorage:{getItem:()=>null},setTimeout:()=>{},console});
- const script=read("views/partials/scripts.ejs").replace(/<script[^>]*>/,"").replace(/<\/script>/,"");
+ const script=read("views/partials/scripts.ejs").replace(/^<script[^\n]*\n/,"").replace(/<\/script>\s*$/,"");
  vm.runInContext(script,context);
  const shell=vm.runInContext("crmShell()",context);shell.$nextTick=callback=>callback();
  return {shell,handlers,query,context,topbar,content,classes,bodyClasses,focuses,first,last,trigger,close,document};

@@ -5,7 +5,7 @@
   const showFinance = canAccess('finance.view') || canAccess('reports.view');
   const showAdministration = canAccess('storage.view') || canAccess('employees.view') || canAccess('roles.view') || canAccess('audit.view');
 %>
-<div id="crmPrimaryNavigation" class="sidebar sidebar-main sidebar-expand-lg crm-sidebar" :role="mobileViewport ? 'dialog' : 'navigation'" :aria-modal="mobileViewport && sidebarOpen ? 'true' : null" aria-label="Primary navigation" :inert="mobileViewport && !sidebarOpen" :class="{'crm-sidebar-open': sidebarOpen, 'crm-sidebar-collapsed': sidebarCollapsed}" :aria-hidden="mobileViewport && !sidebarOpen ? 'true' : 'false'" x-effect="syncMobileDrawer(mobileViewport && sidebarOpen)" @keydown.escape.window="closeSidebar()" @keydown.tab.window="trapSidebarFocus($event)">
+<div id="crmPrimaryNavigation" class="sidebar sidebar-main sidebar-expand-lg crm-sidebar" :role="mobileViewport ? 'dialog' : 'navigation'" :aria-modal="mobileViewport && sidebarOpen ? 'true' : null" aria-label="Primary navigation" :inert="mobileViewport && !sidebarOpen" :class="{'crm-sidebar-open': sidebarOpen, 'crm-sidebar-collapsed': sidebarCollapsed}" :aria-hidden="mobileViewport && !sidebarOpen ? 'true' : 'false'" x-effect="syncMobileDrawer(mobileViewport && sidebarOpen)" @keydown.escape.window="closeSidebar()" @keydown.tab="trapSidebarFocus($event)">
   <div class="sidebar-content">
     <div class="crm-sidebar-mobile-head d-lg-none">
       <div class="crm-sidebar-brand"><img src="/images/findoly-logo.png" alt="Findoly" class="crm-sidebar-brand-logo"><strong class="crm-sidebar-mobile-title">Menu</strong></div>

@@ -119,9 +119,11 @@
     admin:window.__crmServerAdmin||{},shellError:'',sidebarOpen:false,sidebarCollapsed:readSidebarCollapsed(),mobileViewport:false,mobileMediaQuery:null,
     Number,String,Boolean,Math,Date,Array,Object,money,safeDate,formatDate,formatDateOnly,shortDate,humanize,statusClass,showCrmToast,joinTruthy,reverseCopy,moneyFromRupees,bodyData,setSafeHtml,syncMobileDrawer,crmValue,crmList,eventFiles,eventFirstFile,
     isMobileViewport(){return (this.mobileMediaQuery||window.matchMedia(CRM_MOBILE_NAV_QUERY)).matches;},
-    updateMobileViewport(){this.mobileViewport=this.isMobileViewport();if(!this.mobileViewport){if(this.sidebarOpen)this.closeSidebar(false);syncMobileDrawer(false);}},
+    updateMobileViewport(){this.mobileViewport=this.isMobileViewport();if(!this.mobileViewport){if(this.sidebarOpen)this.closeSidebarOnResize();syncMobileDrawer(false);}},
     openSidebar(){if(!this.isMobileViewport())return;this.mobileViewport=true;this.sidebarOpen=true;this.$nextTick(()=>document.querySelector('.crm-sidebar-close')?.focus());},
-    closeSidebar(restoreFocus=true){const wasOpen=this.sidebarOpen;this.sidebarOpen=false;if(wasOpen&&restoreFocus&&this.isMobileViewport())this.$nextTick(()=>document.querySelector('.crm-mobile-menu')?.focus());},
+    closeSidebar(){this.finishClosingSidebar(true);},
+    closeSidebarOnResize(){this.finishClosingSidebar(false);},
+    finishClosingSidebar(restoreFocus){const wasOpen=this.sidebarOpen;this.sidebarOpen=false;if(wasOpen&&restoreFocus&&this.isMobileViewport())this.$nextTick(()=>document.querySelector('.crm-mobile-menu')?.focus());},
     trapSidebarFocus(event){if(!this.mobileViewport||!this.sidebarOpen)return;const drawer=document.getElementById('crmPrimaryNavigation');if(!drawer)return;const focusable=Array.from(drawer.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])')).filter(node=>node.getClientRects().length>0);if(!focusable.length){event.preventDefault();return}const first=focusable[0],last=focusable[focusable.length-1];if(event.shiftKey&&(document.activeElement===first||!drawer.contains(document.activeElement))){event.preventDefault();last.focus()}else if(!event.shiftKey&&(document.activeElement===last||!drawer.contains(document.activeElement))){event.preventDefault();first.focus()}},
     async initShell(){
       syncSidebarDocumentState(this.sidebarCollapsed);
@@ -131,6 +133,7 @@
       const update=()=>this.updateMobileViewport();
       if(this.mobileMediaQuery.addEventListener)this.mobileMediaQuery.addEventListener('change',update);
       else this.mobileMediaQuery.addListener(update);
+      window.addEventListener('keydown',event=>{if(event.key==='Tab'&&this.sidebarOpen&&this.mobileViewport&&!document.getElementById('crmPrimaryNavigation')?.contains(document.activeElement))this.trapSidebarFocus(event);});
       window.addEventListener('pageshow',()=>{this.updateMobileViewport();syncMobileDrawer(this.mobileViewport&&this.sidebarOpen);});
       window.addEventListener('pagehide',()=>syncMobileDrawer(false));
       if(this.admin?.employeeId)return;
