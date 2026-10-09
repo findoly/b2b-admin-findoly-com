@@ -164,6 +164,64 @@ test("order confirmation reserves stock inside a real Mongo transaction",async(t
     assert.equal(overridden.lines[0].unitPricePaise,4000);assert.equal(overridden.lines[0].priceException,true);assert.equal(overridden.approvalStatus,"pending");
   });
 
+  await t.test("future-approved pricing preserves the effective price until its activation",async()=>{
+    await CustomerPrice.deleteMany({});
+    const base=await CustomerPrice.create({...baseAgreement,unitPricePaise:4500,minimumQuantity:1,validFrom:new Date(Date.now()-60000)});
+    const future=new Date(Date.now()+2*86400000);
+    const approved=await pricingService.create({customerId,productId,unitPricePaise:4200,minimumQuantity:1,validFrom:future.toISOString()},{employeeId:actor,permissions:["pricing.approve"]});
+    assert.equal(approved.approvalStatus,"approved");
+    assert.equal((await pricingService.orderPrice({customerId,productId,quantity:1})).unitPricePaise,4500);
+    const stored=await CustomerPrice.findOne({customerProductPriceId:base.customerProductPriceId}).lean();
+    assert.equal(stored.active,true);
+    assert.equal(stored.validUntil.getTime(),future.getTime()-1);
+    const applicable=await CustomerPrice.findOne({...pricingService.effectiveAgreementQuery(customerId,productId,new Date(future.getTime()+1)),minimumQuantity:{$lte:1}}).sort({validFrom:-1}).lean();
+    assert.equal(applicable.customerProductPriceId,approved.customerProductPriceId);
+    await CustomerPrice.deleteMany({});
+    const base2=await CustomerPrice.create({...baseAgreement,unitPricePaise:4500,minimumQuantity:1,validFrom:new Date(Date.now()-60000)});
+    const pending=await pricingService.create({customerId,productId,unitPricePaise:4000,minimumQuantity:1,validFrom:future.toISOString()},{employeeId:actor,permissions:[]});
+    assert.equal(pending.approvalStatus,"pending");
+    await pricingService.approve(pending.customerProductPriceId,{employeeId:actor,permissions:["pricing.approve"]});
+    assert.equal((await pricingService.orderPrice({customerId,productId,quantity:1})).unitPricePaise,4500);
+    assert.equal((await CustomerPrice.findOne({customerProductPriceId:base2.customerProductPriceId}).lean()).validUntil.getTime(),future.getTime()-1);
+  });
+
+  await t.test("non-super-admin cannot replace a Super Admin login mobile",async()=>{
+    const Role=require("../models/Role");
+    const employeeService=require("../services/employee-service");
+    const normal=await Role.create({name:"QA Staff Admin",slug:"qa-staff-admin",permissions:["employees.edit"],createdBy:actor,updatedBy:actor});
+    const privileged=await Role.create({name:"QA Super Admin",slug:"qa-super-admin",permissions:["*"],isSuperAdmin:true,createdBy:actor,updatedBy:actor});
+    await Employee.updateOne({employeeId:actor},{$set:{roleId:normal.roleId}});
+    const target=await Employee.create({name:"QA Protected Super Admin",mobile:"9000000031",normalizedMobile:"9000000031",roleId:privileged.roleId});
+    await assert.rejects(employeeService.updateEmployee(target.employeeId,{mobile:"9000000032"},actor),error=>error.status===403&&error.code==="PRIVILEGE_ESCALATION_BLOCKED");
+    assert.equal((await Employee.findOne({employeeId:target.employeeId}).lean()).normalizedMobile,"9000000031");
+    const selfUpdate=await employeeService.updateEmployee(target.employeeId,{mobile:"9000000032"},target.employeeId);
+    assert.equal(selfUpdate.normalizedMobile,"9000000032");
+  });
+
+  await t.test("goods receipt saves supplier invoice canonical key and rejects equivalent duplicates",async()=>{
+    const PurchaseOrder=require("../models/PurchaseOrder");
+    const SupplierBill=require("../models/SupplierBill");
+    const GoodsReceipt=require("../models/GoodsReceipt");
+    const procurement=require("../services/procurement-service");
+    await SupplierBill.init();
+    const supplierId=uuid(),poIds=[uuid(),uuid()];
+    const pos=await PurchaseOrder.insertMany(poIds.map((purchaseOrderId,index)=>({
+      purchaseOrderId,poNumber:"PO-QA-DUP-"+index+"-"+Date.now(),supplierId,supplierName:"QA Supplier",supplierLocationId:uuid(),warehouseId,status:"approved",createdBy:actor,
+      lines:[{productId,productName:"Test Product",sku:"TXN-SKU",quantity:1,unitPurchasePricePaise:100}]
+    })));
+    await InventoryBalance.updateOne({warehouseId,productId},{$inc:{incomingQty:2}});
+    const makePayload=(po,supplierInvoiceNumber)=>({
+      supplierInvoiceNumber,taxablePaise:100,totalInvoicePaise:100,
+      lines:[{purchaseOrderLineId:po.lines[0].purchaseOrderLineId,receivedQty:1,acceptedQty:1,damagedQty:0,rejectedQty:0,shortQty:0}]
+    });
+    const first=await procurement.receive(pos[0].purchaseOrderId,makePayload(pos[0],"INV  009"),actor);
+    assert.equal(first.supplierBill.supplierInvoiceKey,supplierId+":INV 009");
+    await assert.rejects(procurement.receive(pos[1].purchaseOrderId,makePayload(pos[1],"inv 009"),actor),error=>error.status===409&&error.code==="DUPLICATE_SUPPLIER_INVOICE");
+    assert.equal(await SupplierBill.countDocuments({supplierId}),1);
+    assert.equal(await GoodsReceipt.countDocuments({purchaseOrderId:pos[1].purchaseOrderId}),0);
+    assert.equal((await InventoryBalance.findOne({warehouseId,productId}).lean()).incomingQty,1);
+  });
+
   await t.test("streamed business reporting agrees with MongoDB order totals",async()=>{
     const reports=require("../services/report-service");
     const today=new Date().toISOString().slice(0,10);
