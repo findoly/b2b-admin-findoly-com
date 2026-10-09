@@ -227,3 +227,6 @@
   .crm-sidebar-overlay{z-index:1055!important}
   html{scroll-padding-top:4.5rem}
 }
+
+/* U34–U41: responsive workflow actions; no new themes. */
+@media(max-width:767.98px){.content .crm-filter-actions{display:flex;flex-wrap:wrap;gap:.5rem}.content .crm-data-card>.crm-card-heading>.d-flex{max-width:100%}.content .crm-data-card>.crm-card-heading .btn{min-height:44px}}

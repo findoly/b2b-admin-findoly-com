@@ -41,3 +41,8 @@ This document complements automated source-contract tests. **These checks are no
 ## Release gate
 
 For each viewport, capture a screenshot of the order form header/timeline, list records, and finance layout. Log deviations and do not deploy until necessary visual fixes are verified. Browser sign-off remains **pending** until screenshots or authenticated staging results are recorded.
+
+## U34–U41 workflow review (authenticated browser sign-off pending)
+- [ ] Confirm exact Delivery → Sales Order link, shareable filtered Orders/Delivery/Products/Pricing/Inventory URL state and clear/reset behavior.
+- [ ] Inventory-only role can load names/SKUs without product.view; unauthorized product links are absent. Check empty/error/retry and stock page-scope notice.
+- [ ] Procurement demand blocks incompatible selection early, clear selection, loading, retry, 44px mobile checkbox and Create controls.
