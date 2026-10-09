@@ -218,3 +218,12 @@
 
 /* Keyboard focus for the chart's per-day value descriptions. */
 .content .crm-spark-day:focus-visible{outline:2px solid var(--crm-user-accent,#3478d4);outline-offset:2px;border-radius:.35rem}
+
+/* N1–N4: mobile navigation shell. Match Bootstrap's <=991.98px drawer boundary. */
+@media(max-width:991.98px){
+  .crm-topbar.navbar-static{position:sticky;top:0;z-index:1040;overflow:visible}
+  .crm-topbar .crm-mobile-menu{display:inline-flex;min-width:44px;min-height:44px;flex:0 0 44px}
+  .crm-sidebar.sidebar-main{z-index:1060!important}
+  .crm-sidebar-overlay{z-index:1055!important}
+  html{scroll-padding-top:4.5rem}
+}
