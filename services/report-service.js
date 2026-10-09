@@ -7,7 +7,7 @@ const Return=require("../models/Return");
 const Employee=require("../models/Employee");
 function istDate(day,end=false){
  const raw=String(day);
- if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(raw))throw Object.assign(new Error("Report date range is invalid"),{status:400});
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(raw))throw Object.assign(new Error("Report date range is invalid"),{status:400});
  const date=new Date(raw+(end?"T23:59:59.999+05:30":"T00:00:00.000+05:30"));
  if(Number.isNaN(date.getTime())||new Date(date.getTime()+330*60000).toISOString().slice(0,10)!==raw)throw Object.assign(new Error("Report date range is invalid"),{status:400});
  return date;
