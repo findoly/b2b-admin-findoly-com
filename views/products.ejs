@@ -25,8 +25,8 @@
 </div><%- include('partials/footer') %></div></div></div>
 <script nonce="<%= cspNonce %>">
 function productsListPage(){return{
-...crmPager('loadProducts'),items:[],loading:true,error:'',search:'',statusFilter:'',
+...crmPager('loadProducts'),items:[],loading:true,error:'',search:new URLSearchParams(location.search).get('search')||'',statusFilter:new URLSearchParams(location.search).get('status')||'',
 imageCount(p){return(p.media||[]).filter(m=>m.active!==false&&m.kind==='image').length},documentCount(p){return(p.media||[]).filter(m=>m.active!==false&&m.kind==='document').length},
-async loadProducts(){this.loading=true;this.error='';try{const q=new URLSearchParams({limit:String(this.pageSize),page:String(this.page)});if(this.search)q.set('search',this.search);if(this.statusFilter)q.set('status',this.statusFilter);const data=(await apiFetch('/api/products?'+q)).data;this.items=data.items||[];this.setPageMeta(data)}catch(e){this.error=e.message}finally{this.loading=false}},searchProducts(){this.resetPage();return this.loadProducts()}
+async loadProducts(){this.loading=true;this.error='';try{const q=new URLSearchParams({limit:String(this.pageSize),page:String(this.page)});if(this.search)q.set('search',this.search);if(this.statusFilter)q.set('status',this.statusFilter);const data=(await apiFetch('/api/products?'+q)).data;this.items=data.items||[];this.setPageMeta(data)}catch(e){this.error=e.message}finally{this.loading=false}},searchProducts(){this.resetPage();const url=new URL(location.href);for(const [key,value] of [['search',this.search.trim()],['status',this.statusFilter]]){if(value)url.searchParams.set(key,value);else url.searchParams.delete(key)}history.replaceState(null,'',url);return this.loadProducts()}
 }}</script><%- include('partials/scripts') %>
 </body></html>
