@@ -34,16 +34,16 @@ test("N2/N3: shared responsive state is driven by one CSS-equivalent media query
 function makeShell(){
  const handlers={},classes=new Set(),bodyClasses=new Set(),attributes=new Map(),focuses=[];
  const createEl=name=>({name,attrs:new Set(),toggleAttribute(k,on){if(on)this.attrs.add(k);else this.attrs.delete(k)},focus(){focuses.push(name);document.activeElement=this},getClientRects(){return [1]}});
- const topbar=createEl("topbar"),content=createEl("content"),trigger=createEl("trigger"),close=createEl("close"),first=createEl("first"),last=createEl("last");
- const drawer={contains:el=>el===first||el===last,querySelectorAll:()=>[first,last]};
- const document={documentElement:{classList:{toggle:(k,v)=>v?classes.add(k):classes.delete(k)}},body:{classList:{toggle:(k,v)=>v?bodyClasses.add(k):bodyClasses.delete(k)}},querySelector:q=>({".crm-topbar":topbar,".content-wrapper":content,".crm-mobile-menu":trigger,".crm-sidebar-close":close})[q],getElementById:id=>id==="crmPrimaryNavigation"?drawer:null,activeElement:trigger,addEventListener:()=>{}};
+ const topbar=createEl("topbar"),content=createEl("content"),trigger=createEl("trigger"),close=createEl("close"),desktop=createEl("desktop"),first=createEl("first"),last=createEl("last");
+ const drawer={contains:el=>el===first||el===last||el===close,querySelectorAll:()=>[first,last]};
+ const document={documentElement:{classList:{toggle:(k,v)=>v?classes.add(k):classes.delete(k)}},body:{classList:{toggle:(k,v)=>v?bodyClasses.add(k):bodyClasses.delete(k)}},querySelector:q=>({".crm-topbar":topbar,".content-wrapper":content,".crm-mobile-menu":trigger,".crm-sidebar-close":close,".crm-sidebar-collapse":desktop})[q],getElementById:id=>id==="crmPrimaryNavigation"?drawer:null,activeElement:trigger,addEventListener:()=>{}};
  const query={matches:true,addEventListener:(name,callback)=>{handlers.query=callback}};
  const window={__crmServerAdmin:{employeeId:"employee"},matchMedia:()=>query,addEventListener:(event,callback)=>{handlers[event]=callback}};
  const context=vm.createContext({document,window,location:{pathname:"/dashboard"},localStorage:{getItem:()=>null},setTimeout:()=>{},console});
  const script=read("views/partials/scripts.ejs").replace(/^<script[^\n]*\n/,"").replace(/<\/script>\s*$/,"");
  vm.runInContext(script,context);
  const shell=vm.runInContext("crmShell()",context);shell.$nextTick=callback=>callback();
- return {shell,handlers,query,context,topbar,content,classes,bodyClasses,focuses,first,last,trigger,close,document};
+ return {shell,handlers,query,context,topbar,content,classes,bodyClasses,focuses,first,last,trigger,close,desktop,document};
 }
 test("N3: open, focus trap, close and background inert state are reversible",async()=>{
  const m=makeShell();await m.shell.initShell();assert.equal(m.shell.mobileViewport,true);
@@ -62,9 +62,16 @@ test("N2/N3: crossing desktop breakpoint closes drawer and restores scroll witho
  const m=makeShell();await m.shell.initShell();m.shell.openSidebar();vm.runInContext("syncMobileDrawer(true)",m.context);
  m.query.matches=false;m.handlers.query();
  assert.equal(m.shell.mobileViewport,false);assert.equal(m.shell.sidebarOpen,false);assert.equal(m.classes.has("crm-mobile-drawer-open"),false);
+ assert.equal(m.focuses.at(-1),"desktop");
  assert.equal(m.topbar.attrs.has("inert"),false);assert.equal(m.content.attrs.has("inert"),false);
  const count=m.focuses.length;m.shell.openSidebar();assert.equal(m.shell.sidebarOpen,false);assert.equal(m.focuses.length,count);
  m.query.matches=true;m.handlers.query();assert.equal(m.shell.mobileViewport,true);
  m.shell.openSidebar();m.handlers.pagehide();assert.equal(m.bodyClasses.has("crm-mobile-drawer-open"),false);
  m.handlers.pageshow();assert.equal(m.bodyClasses.has("crm-mobile-drawer-open"),true);
+});
+
+test("N3: a Tab key from outside the drawer is trapped at window level",async()=>{
+ const m=makeShell();await m.shell.initShell();m.shell.openSidebar();m.document.activeElement=m.trigger;
+ let blocked=false;m.handlers.keydown({key:"Tab",shiftKey:false,preventDefault(){blocked=true}});
+ assert.equal(blocked,true);assert.equal(m.focuses.at(-1),"first");
 });

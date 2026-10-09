@@ -122,7 +122,12 @@
     updateMobileViewport(){this.mobileViewport=this.isMobileViewport();if(!this.mobileViewport){if(this.sidebarOpen)this.closeSidebarOnResize();syncMobileDrawer(false);}},
     openSidebar(){if(!this.isMobileViewport())return;this.mobileViewport=true;this.sidebarOpen=true;this.$nextTick(()=>document.querySelector('.crm-sidebar-close')?.focus());},
     closeSidebar(){this.finishClosingSidebar(true);},
-    closeSidebarOnResize(){this.finishClosingSidebar(false);},
+    closeSidebarOnResize(){
+      const drawer=document.getElementById('crmPrimaryNavigation');
+      const focusWasInside=Boolean(drawer?.contains(document.activeElement));
+      this.finishClosingSidebar(false);
+      if(focusWasInside)this.$nextTick(()=>document.querySelector('.crm-sidebar-collapse')?.focus());
+    },
     finishClosingSidebar(restoreFocus){const wasOpen=this.sidebarOpen;this.sidebarOpen=false;if(wasOpen&&restoreFocus&&this.isMobileViewport())this.$nextTick(()=>document.querySelector('.crm-mobile-menu')?.focus());},
     trapSidebarFocus(event){if(!this.mobileViewport||!this.sidebarOpen)return;const drawer=document.getElementById('crmPrimaryNavigation');if(!drawer)return;const focusable=Array.from(drawer.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])')).filter(node=>node.getClientRects().length>0);if(!focusable.length){event.preventDefault();return}const first=focusable[0],last=focusable[focusable.length-1];if(event.shiftKey&&(document.activeElement===first||!drawer.contains(document.activeElement))){event.preventDefault();last.focus()}else if(!event.shiftKey&&(document.activeElement===last||!drawer.contains(document.activeElement))){event.preventDefault();first.focus()}},
     async initShell(){
