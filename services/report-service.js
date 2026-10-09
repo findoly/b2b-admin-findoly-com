@@ -5,7 +5,21 @@ const Invoice=require("../models/Invoice");
 const SupplierBill=require("../models/SupplierBill");
 const Return=require("../models/Return");
 const Employee=require("../models/Employee");
-function range(query={}){const from=query.from?new Date(String(query.from)+"T00:00:00.000Z"):new Date(Date.now()-30*86400000);const to=query.to?new Date(String(query.to)+"T23:59:59.999Z"):new Date();if(Number.isNaN(from.getTime())||Number.isNaN(to.getTime())||from>to)throw Object.assign(new Error("Report date range is invalid"),{status:400});if(to-from>366*86400000)throw Object.assign(new Error("Report date range cannot exceed 366 days"),{status:400});return{from,to};}
+function istDate(day,end=false){
+ const raw=String(day);
+ if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(raw))throw Object.assign(new Error("Report date range is invalid"),{status:400});
+ const date=new Date(raw+(end?"T23:59:59.999+05:30":"T00:00:00.000+05:30"));
+ if(Number.isNaN(date.getTime())||new Date(date.getTime()+330*60000).toISOString().slice(0,10)!==raw)throw Object.assign(new Error("Report date range is invalid"),{status:400});
+ return date;
+}
+function range(query={}){
+ const today=new Date(Date.now()+330*60000).toISOString().slice(0,10);
+ const from=istDate(query.from||new Date(Date.now()+330*60000-29*86400000).toISOString().slice(0,10));
+ const to=query.to?istDate(query.to,true):istDate(today,true);
+ if(from>to)throw Object.assign(new Error("Report date range is invalid"),{status:400});
+ if(to-from>366*86400000)throw Object.assign(new Error("Report date range cannot exceed 366 days"),{status:400});
+ return{from,to};
+}
 function chunk(values,size=500){const out=[];for(let i=0;i<values.length;i+=size)out.push(values.slice(i,i+size));return out;}
 async function allocationRows(orderIds){const rows=[];for(const ids of chunk(orderIds)){const part=await ProcurementAllocation.aggregate([{$match:{salesOrderId:{$in:ids},status:{$ne:"cancelled"}}},{$group:{_id:{salesOrderId:"$salesOrderId",supplierId:"$supplierId"},quantity:{$sum:"$quantity"},procurementCostPaise:{$sum:{$multiply:["$purchasePricePaise","$quantity"]}},supplierName:{$first:"$supplierSnapshot.businessName"}}}]);rows.push(...part);}return rows;}
 async function sumField(Model,match,field){const rows=await Model.aggregate([{$match:match},{$group:{_id:null,total:{$sum:`$${field}`}}}]);return Number(rows[0]?.total||0);}
@@ -69,4 +83,4 @@ async function businessSummary(query={}){
 }
 function csvCell(value){let s=String(value??"");if(/^[\s\uFEFF]*[=+\-@]/.test(s)||/^[\t\r\n]/.test(s))s="'"+s;return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s;}
 function toCsv(report){const rows=[["Metric","Value"],["From",report.from.toISOString()],["To",report.to.toISOString()],["Sales order count",report.salesOrderCount],["Net sales paise",report.netSalesPaise],["Sales GST paise",report.salesGstPaise],["Existing-stock cost paise",report.stockCostPaise],["Procurement cost paise",report.procurementCostPaise],["COGS paise",report.cogsPaise],["Gross margin paise",report.grossMarginPaise],["Customer collections paise",report.customerCollectionsPaise],["Supplier payments paise",report.supplierPaymentsPaise],["Receivable outstanding paise",report.currentReceivableOutstandingPaise],["Payable outstanding paise",report.currentPayableOutstandingPaise],["Return count",report.returnCount],[],["Sales employee","Employee ID","Orders","Net sales paise","Existing-stock cost paise","Procurement cost paise","COGS paise","Gross margin paise"],...report.agentPerformance.map(x=>[x.employeeName,x.employeeId,x.orderCount,x.netSalesPaise,x.stockCostPaise,x.procurementCostPaise,x.cogsPaise,x.grossMarginPaise]),[],["Supplier ID","Supplier","Allocation groups","Quantity","Procurement cost paise"],...report.supplierPerformance.map(x=>[x.supplierId,x.supplierName,x.allocationCount,x.quantity,x.procurementCostPaise])];return rows.map(row=>row.map(csvCell).join(",")).join("\n");}
-module.exports={businessSummary,toCsv};
+module.exports={businessSummary,toCsv,range,istDate};
