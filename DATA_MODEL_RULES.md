@@ -5,6 +5,7 @@
 | Collection | Application ID |
 |---|---|
 | `b2bemployees` | `employeeId` |
+| `b2badminsessions` | `sessionId` |
 | `b2broles` | `roleId` |
 | `b2bauditlogs` | `auditLogId` |
 | `b2bcustomers` | `customerId` |
@@ -29,6 +30,7 @@
 | `b2binvoices` | `invoiceId` |
 | `b2bsupplierbills` | `supplierBillId` |
 | `b2bpayments` | `paymentId` |
+| `b2bpaymentadjustments` | `paymentAdjustmentId` |
 | `b2bdeliveryassignments` | `deliveryAssignmentId` |
 | `b2breturns` | `returnId` |
 
