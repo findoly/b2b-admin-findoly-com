@@ -122,3 +122,28 @@ test('sales-order price lookup requires order creation permission, not pricing-m
 
 test("customer product mapping endpoints are permission protected",async()=>{const customerId="a".repeat(32),mappingId="b".repeat(32);const [list,create,update]=await Promise.all([request(app).get(`/api/customers/${customerId}/products`),request(app).post(`/api/customers/${customerId}/products`).send({productId:"c".repeat(32)}),request(app).put(`/api/customers/${customerId}/products/${mappingId}`).send({active:false})]);assert.equal(list.status,401);assert.equal(create.status,401);assert.equal(update.status,401);});
 test("mapping mutation requires customer edit permission",async()=>{const customerId="a".repeat(32);const r=await request(app).post(`/api/customers/${customerId}/products`).set(mutationHeaders(["customers.view"])).send({productId:"c".repeat(32)});assert.equal(r.status,403);});
+
+test("scoped workflow selectors reject unrelated permissions without consulting the database",async()=>{
+  const financeParty=await request(app).get("/api/finance/options/customers")
+    .set("Cookie",authCookie(["customers.view"]));
+  const financeOrders=await request(app).get("/api/finance/options/orders")
+    .set("Cookie",authCookie(["finance.view"]));
+  const orderCustomer=await request(app).get("/api/orders/options/customers")
+    .set("Cookie",authCookie(["customers.view"]));
+  assert.equal(financeParty.status,403);
+  assert.equal(financeOrders.status,403);
+  assert.equal(orderCustomer.status,403);
+});
+
+test("custom-role employees enter their authorized workspace instead of denied dashboard",async()=>{
+  const cookie=authCookie(["orders.create"]);
+  const home=await request(app).get("/").set("Cookie",cookie);
+  const login=await request(app).get("/login").set("Cookie",cookie);
+  const orderForm=await request(app).get("/orders/new").set("Cookie",cookie);
+  assert.equal(home.status,302);
+  assert.equal(home.headers.location,"/orders/new");
+  assert.equal(login.status,302);
+  assert.equal(login.headers.location,"/orders/new");
+  assert.equal(orderForm.status,200);
+  assert.match(orderForm.text,/New sales order/);
+});
