@@ -107,6 +107,30 @@ test("order confirmation reserves stock inside a real Mongo transaction",async(t
   });
 
   await Employee.create({employeeId:actor,name:"Pricing Test Employee",mobile:"9000000002",normalizedMobile:"9000000002",roleId:uuid()});
+  await t.test("revoked OTP device sessions cannot authorize requests",async()=>{
+    const Role=require("../models/Role");
+    const AdminSession=require("../models/AdminSession");
+    const {createAdminSession,revokeAdminSession,attachAdmin}=require("../middleware/auth");
+    const roleId=uuid(),employeeId=uuid();
+    await Role.create({roleId,name:"QA Session Role",slug:"qa-session-role",permissions:["dashboard.view"]});
+    await Employee.create({employeeId,name:"Session QA Employee",mobile:"9000000003",normalizedMobile:"9000000003",roleId});
+    let token="",cookieName="";
+    const response={cookie(name,value){cookieName=name;token=value;}};
+    const session=await createAdminSession(response,{employeeId,roleId,permissions:["dashboard.view"]});
+    assert.equal(await AdminSession.countDocuments({sessionId:session.sessionId,employeeId,revokedAt:null}),1);
+    const load=async()=>{
+      const req={cookies:{[cookieName]:token}},res={locals:{},clearCookie(){}};
+      await new Promise((resolve,reject)=>attachAdmin(req,res,error=>error?reject(error):resolve()));
+      return {req,res};
+    };
+    const active=await load();
+    assert.equal(active.req.admin.employeeId,employeeId);
+    assert.equal(active.req.adminSessionId,session.sessionId);
+    assert.equal(active.res.locals.currentAdmin.sessionId,undefined);
+    await revokeAdminSession({employeeId,sessionId:session.sessionId});
+    assert.equal((await load()).req.admin,null);
+  });
+
   await t.test("payment idempotency replays a missing paidAt without double recording cash",async()=>{
     const finance=require("../services/finance-service");
     const Payment=require("../models/Payment");
