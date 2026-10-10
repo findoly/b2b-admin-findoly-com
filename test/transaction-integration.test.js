@@ -143,6 +143,28 @@ test("order confirmation reserves stock inside a real Mongo transaction",async(t
     assert.equal(await Payment.countDocuments({idempotencyKey}),1);
     await assert.rejects(finance.recordPayment({...payload,amountPaise:1600},actor),err=>err.status===409&&err.code==="IDEMPOTENCY_KEY_REUSED");
   });
+  await t.test("reconciled allocation changes require authority, a reason, and transactional history",async()=>{
+    const finance=require("../services/finance-service");
+    const Invoice=require("../models/Invoice");
+    const Payment=require("../models/Payment");
+    const PaymentAdjustment=require("../models/PaymentAdjustment");
+    const created=await finance.recordPayment({idempotencyKey:"qa-reconciled-"+uuid(),direction:"receivable",customerId,amountPaise:5000,mode:"bank_transfer",reference:"QA RECONCILED ADVANCE",allocations:[]},actor);
+    await finance.reconcile(created.paymentId,actor);
+    const invoice=(await Invoice.create({invoiceNumber:"INV-QA-"+uuid().slice(0,12),salesOrderId:uuid(),customerId,customerSnapshot:{businessName:"QA Customer"},lines:[],taxablePaise:5000,gstTreatment:"no_gst",totalGstPaise:0,totalPaise:5000,outstandingPaise:5000,status:"issued",createdBy:actor}));
+    const input={allocations:[{documentId:invoice.invoiceId,amountPaise:2000}],note:"Bank reconciled advance applied after invoice"};
+    await assert.rejects(finance.allocatePayment(created.paymentId,input,actor),e=>e.status===403&&e.code==="RECONCILED_PAYMENT_ADJUSTMENT_FORBIDDEN");
+    await assert.rejects(finance.allocatePayment(created.paymentId,{...input,note:"short"},actor,true),e=>e.status===400&&e.code==="RECONCILED_PAYMENT_REASON_REQUIRED");
+    const allocated=await finance.allocatePayment(created.paymentId,input,actor,true);
+    assert.equal(allocated.unallocatedPaise,3000);
+    assert.equal(await PaymentAdjustment.countDocuments({paymentId:created.paymentId,action:"allocation"}),1);
+    await assert.rejects(finance.voidInvoice(invoice.invoiceId,{reason:"Accounting correction of invoice"},actor),e=>e.status===403&&e.code==="RECONCILED_PAYMENT_ADJUSTMENT_FORBIDDEN");
+    assert.equal((await Invoice.findOne({invoiceId:invoice.invoiceId}).lean()).status,"issued");
+    const voided=await finance.voidInvoice(invoice.invoiceId,{reason:"Accounting correction of invoice"},actor,true);
+    assert.equal(voided.status,"void");
+    assert.equal((await Payment.findOne({paymentId:created.paymentId}).lean()).unallocatedPaise,5000);
+    assert.equal(await PaymentAdjustment.countDocuments({paymentId:created.paymentId,action:"reversal"}),1);
+  });
+
   await t.test("manual adjustment rejects workflow-managed stock without mutation",async()=>{
     const inventory=require("../services/inventory-service");
     const before=await InventoryBalance.findOne({warehouseId,productId}).lean();
