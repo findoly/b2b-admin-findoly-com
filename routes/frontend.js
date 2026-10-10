@@ -1,8 +1,8 @@
 const r=require("express").Router();
 const p=require("../controllers/frontendController");
-const {pageAuth,guestOnly,requirePermission,requireAnyPermission}=require("../middleware/auth");
+const {pageAuth,guestOnly,requirePermission,requireAnyPermission,firstAuthorizedPath}=require("../middleware/auth");
 r.get("/login",guestOnly,p.login);
-r.get("/",(req,res)=>res.redirect(req.admin?"/dashboard":"/login"));
+r.get("/",(req,res)=>res.redirect(req.admin?firstAuthorizedPath(req.admin):"/login"));
 r.get("/dashboard",pageAuth,requirePermission("dashboard.view"),p.dashboard);
 r.get("/customers",pageAuth,requirePermission("customers.view"),p.customers);
 r.get("/products",pageAuth,requirePermission("products.view"),p.products);
