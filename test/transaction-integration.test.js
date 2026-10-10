@@ -224,7 +224,7 @@ test("order confirmation reserves stock inside a real Mongo transaction",async(t
 
   await t.test("streamed business reporting agrees with MongoDB order totals",async()=>{
     const reports=require("../services/report-service");
-    const today=new Date().toISOString().slice(0,10);
+    const today=new Date(Date.now()+330*60000).toISOString().slice(0,10);
     const result=await reports.businessSummary({from:today,to:today});
     const orders=await SalesOrder.find({status:{$ne:"cancelled"},orderType:{$ne:"replacement"}}).lean();
     const netSales=orders.reduce((sum,order)=>sum+Number(order.taxablePaise||0),0);
