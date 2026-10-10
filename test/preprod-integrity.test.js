@@ -32,3 +32,10 @@ test("customer-product mapping accepts explicit false from JSON and forms",async
     assert.equal(patch.active,false);
   }finally{Mapping.findOneAndUpdate=oldUpdate;}
 });
+
+test("sensitive session identifiers remain server-side rather than in browser admin DTOs",()=>{
+  const fs=require("node:fs");const path=require("node:path");
+  const source=fs.readFileSync(path.join(__dirname,"../middleware/auth.js"),"utf8");
+  assert.ok(source.includes("req.adminSessionId=s.sessionId"));
+  assert.ok(!source.includes("permissions:role.permissions||[],sessionId:"));
+});
