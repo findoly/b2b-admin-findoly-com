@@ -30,7 +30,7 @@ test("mapped product search preserves selected mapped product snapshots",async()
   page.form.lines=[{productId:"first",quantity:1},{productId:"second",quantity:2}];
   page.productSearch="soap";
   const search=page.searchProducts();
-  assert.match(pending[0].url,/\/api\/customers\/customer-a\/products\?search=soap/);
+  assert.match(pending[0].url,/\/api\/orders\/options\/customers\/customer-a\/products\?search=soap/);
   pending[0].resolve({data:{items:[{productId:"third",name:"Soap"}]}});await search;
   assert.equal(page.product("first").name,"Rice");
   assert.equal(page.product("second").name,"Oil");
@@ -59,7 +59,7 @@ test("mapped product search ignores obsolete responses",async()=>{
 test("clearing mapped product search reloads the full customer catalogue",async()=>{
   const {page,pending}=harness();page.form.customerId="customer-a";page.productSearch="older";const old=page.searchProducts();
   page.productSearch="";const current=page.searchProducts();assert.equal(pending[0].options.signal.aborted,true);
-  assert.match(pending[1].url,/\/api\/customers\/customer-a\/products$/);
+  assert.match(pending[1].url,/\/api\/orders\/options\/customers\/customer-a\/products$/);
   pending[1].resolve({data:{items:[{productId:"all"}]}});await current;
   pending[0].reject(new Error("Obsolete failure"));await old;
   assert.equal(page.products[0].productId,"all");assert.equal(page.error,"");
@@ -158,7 +158,7 @@ test('changing customer clears old product lines and loads only the new customer
   const {page,pending}=harness(),line=preparePrice(page);
   const old=page.productChanged(line);page.form.customerId='customer-b';const current=page.customerChanged();
   assert.equal(pending[0].options.signal.aborted,true);
-  assert.match(pending[1].url,/\/api\/customers\/customer-b\/products$/);
+  assert.match(pending[1].url,/\/api\/orders\/options\/customers\/customer-b\/products$/);
   pending[1].resolve({data:{items:[{productId:'oil',name:'Oil'}]}});await current;
   pending[0].resolve(priceResult(12000));await old;
   assert.equal(page.form.lines.length,1);assert.equal(page.form.lines[0].productId,'');
@@ -199,7 +199,7 @@ test('restored automatic drafts validate mapping then re-fetch prices',async()=>
   storage.set('findoly.b2b.order-draft.v1',JSON.stringify({form:page.form,products:[]}));
   const loading=page.load();pending[0].resolve({data:{items:[{customerId:'customer-a',businessName:'Customer A'}]}});
   await new Promise(resolve=>setImmediate(resolve));assert.equal(pending.length,2);
-  assert.match(pending[1].url,/\/api\/customers\/customer-a\/products$/);
+  assert.match(pending[1].url,/\/api\/orders\/options\/customers\/customer-a\/products$/);
   pending[1].resolve({data:{items:[{productId:'rice',name:'Rice'}]}});
   await new Promise(resolve=>setImmediate(resolve));assert.equal(pending.length,3);
   pending[2].resolve(priceResult(5500));await loading;assert.equal(page.form.lines[0].unitPriceRupees,'55.00');
