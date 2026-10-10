@@ -14,6 +14,15 @@ test("OTP requires explicit verification, even if the service returns generic su
  assert.equal(otp.isSuccess({data:{verified:true}}),true);
  assert.equal(otp.isSuccess({verified:true,success:false}),false);
  assert.equal(otp.isSuccess({success:true,data:{verified:false},verified:true}),false);
+ assert.equal(otp.isSuccess({verify:true}),true);
+ assert.equal(otp.isSuccess({data:{verify:true}}),true);
+ assert.equal(otp.isSuccess({verify:true,verified:false}),false);
+ assert.equal(otp.isSuccess({verify:true,data:{verified:false}}),false);
+ assert.equal(otp.isSuccess({verify:"true"}),false);
+ assert.equal(otp.isSuccess({verify:1}),false);
+ assert.equal(otp.isSuccess({verify:true,status:"failed"}),false);
+ assert.equal(otp.isSuccess({data:{verify:true,success:false}}),false);
+ assert.equal(otp.isSuccess({verify:true,data:{status:"invalid"}}),false);
  assert.equal(otp.isSuccess(null),false);
 });
 
