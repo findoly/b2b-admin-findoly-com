@@ -2,6 +2,7 @@ const r=require("express").Router();
 const p=require("../controllers/frontendController");
 const {pageAuth,guestOnly,requirePermission,requireAnyPermission,firstAuthorizedPath}=require("../middleware/auth");
 r.get("/login",guestOnly,p.login);
+r.get("/access-denied",pageAuth,(req,res)=>res.status(403).render("error",{title:"Access denied",message:"No workspace has been assigned to this employee account. Ask your administrator for access."}));
 r.get("/",(req,res)=>res.redirect(req.admin?firstAuthorizedPath(req.admin):"/login"));
 r.get("/dashboard",pageAuth,requirePermission("dashboard.view"),p.dashboard);
 r.get("/customers",pageAuth,requirePermission("customers.view"),p.customers);
