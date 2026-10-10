@@ -9,7 +9,7 @@ async function attempt(reply,{missingEmployee=false,inactiveRole=false}={}){
   const employee=missingEmployee?null:{employeeId:"a".repeat(32),status:"active",name:"Test",mobile:"9876543210"};
   const fake={
     "../models/Employee":{async updateOne(){counters.employeeUpdate++;}},
-    "../middleware/auth":{setAdminCookie(_res,access){counters.cookie++;return {...access,exp:Date.now()+60000};},firstAuthorizedPath(){return "/dashboard";}},
+    "../middleware/auth":{async createAdminSession(_res,access){counters.cookie++;return {...access,exp:Date.now()+60000};},firstAuthorizedPath(){return "/dashboard";}},
     "../utils/validation":require("../utils/validation"),
     "../services/access/otp-client":{urls(){return{verify:"local-test-url"};},async requestOtp(){return reply;},isSuccess:otp.isSuccess},
     "../services/access/access-service":{

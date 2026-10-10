@@ -3,7 +3,7 @@ const Customer=require("../models/Customer");
 const Product=require("../models/Product");
 const CustomerPrice=require("../models/CustomerProductPrice");
 const {effectiveAgreementQuery}=require("./pricing-service");
-const {requiredUuid}=require("../utils/validation");
+const {requiredUuid,booleanValue}=require("../utils/validation");
 const {escapedRegex}=require("../utils/pagination");
 
 async function assertCustomer(customerId){
@@ -49,7 +49,7 @@ async function upsert(customerId,input,actor){
   if(!customer||!product)throw Object.assign(new Error("Customer or product was not found"),{status:404});
   const item=await Mapping.findOneAndUpdate(
     {customerId,productId},
-    {$set:{active:input.active!==false,notes:String(input.notes||"").trim().slice(0,2000),updatedBy:actor},$setOnInsert:{createdBy:actor}},
+    {$set:{active:booleanValue(input.active,true),notes:String(input.notes||"").trim().slice(0,2000),updatedBy:actor},$setOnInsert:{createdBy:actor}},
     {upsert:true,new:true,runValidators:true,setDefaultsOnInsert:true}
   );
   return item.toObject();
@@ -59,7 +59,7 @@ async function update(customerId,mappingId,input,actor){
   customerId=requiredUuid(customerId,"Customer");
   mappingId=requiredUuid(mappingId,"Customer product mapping");
   const patch={updatedBy:actor};
-  if(Object.prototype.hasOwnProperty.call(input,"active"))patch.active=Boolean(input.active);
+  if(Object.prototype.hasOwnProperty.call(input,"active"))patch.active=booleanValue(input.active);
   if(Object.prototype.hasOwnProperty.call(input,"notes"))patch.notes=String(input.notes||"").trim().slice(0,2000);
   const item=await Mapping.findOneAndUpdate({customerId,customerProductMappingId:mappingId},{$set:patch},{new:true,runValidators:true});
   if(!item)throw Object.assign(new Error("Customer product mapping not found"),{status:404});
