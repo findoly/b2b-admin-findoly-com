@@ -229,25 +229,30 @@
 
   function restoreControl(control, params) {
     const key = controlKey(control);
-    if (!key || !params.has(key)) return false;
+    if (!key) return false;
     const values = params.getAll(key);
+    const supplied = params.has(key);
     let changed = false;
     let modelValue;
 
     if (control.type === 'checkbox' || control.type === 'radio') {
-      const checked = values.includes(String(control.value || '1'));
+      const checked = supplied ? values.includes(String(control.value || '1')) : control.defaultChecked;
       changed = control.checked !== checked;
       control.checked = checked;
       modelValue = checked;
     } else if (control instanceof HTMLSelectElement && control.multiple) {
       for (const option of control.options) {
-        const selected = values.includes(String(option.value));
+        const selected = supplied ? values.includes(String(option.value)) : option.defaultSelected;
         if (option.selected !== selected) changed = true;
         option.selected = selected;
       }
       modelValue = values;
     } else {
-      const value = values[values.length - 1] || '';
+      const defaultOption = control instanceof HTMLSelectElement
+        ? Array.from(control.options).find(option => option.defaultSelected) || control.options[0]
+        : null;
+      const value = supplied ? (values[values.length - 1] || '')
+        : (defaultOption ? defaultOption.value : (control.defaultValue || ''));
       changed = String(control.value || '') !== value;
       if (changed) control.value = value;
       modelValue = value;
@@ -413,6 +418,7 @@
   }, { once: true });
 
   window.addEventListener('pageshow', handlePageShow);
+  window.addEventListener('popstate', () => restoreFormsFromUrl(true));
   filterMedia.addEventListener?.('change', (event) => {
     if (event.matches) {
       for (const form of filterForms) {

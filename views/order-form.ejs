@@ -99,7 +99,7 @@ clearDraft(){clearTimeout(this.draftTimer);this.draftTimer=null;try{sessionStora
 async load(){
   this.form.lines=[this.newLine()];
   try{
-    const c=await apiFetch('/api/customers?limit=50');
+    const c=await apiFetch('/api/orders/options/customers?limit=50');
     this.customers=c.data.items||[];this.products=[];
     this.restoreDraft();
     for(const line of this.form.lines){line.key=line.key||crypto.randomUUID();line.priceMode=line.priceMode||(String(line.unitPriceRupees??'')===''?'auto':'manual');line.priceLoading=false;line.priceError='';}
@@ -113,7 +113,7 @@ async searchCustomers(){
   const controller=new AbortController();this.customerAbort=controller;
   const query=this.customerSearch.trim();if(query.length<2)return;
   try{
-    const items=(await apiFetch('/api/customers?limit=25&search='+encodeURIComponent(query),{signal:controller.signal})).data.items||[];
+    const items=(await apiFetch('/api/orders/options/customers?limit=25&search='+encodeURIComponent(query),{signal:controller.signal})).data.items||[];
     if(controller.signal.aborted||this.customerAbort!==controller)return;
     const selected=this.selectedCustomer;
     this.customers=selected&&!items.some(x=>x.customerId===selected.customerId)?[selected,...items]:items;
@@ -125,7 +125,7 @@ async loadCustomerProducts(query='',restore=false){
   const controller=new AbortController();this.productAbort=controller;
   try{
     const suffix=query?'?search='+encodeURIComponent(query):'';
-    const items=(await apiFetch('/api/customers/'+customerId+'/products'+suffix,{signal:controller.signal})).data.items||[];
+    const items=(await apiFetch('/api/orders/options/customers/'+customerId+'/products'+suffix,{signal:controller.signal})).data.items||[];
     if(controller.signal.aborted||this.productAbort!==controller)return;
     if(query){
       const selectedIds=new Set(this.form.lines.map(line=>line.productId).filter(Boolean));
