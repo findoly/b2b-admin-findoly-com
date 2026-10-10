@@ -107,6 +107,30 @@ test("order confirmation reserves stock inside a real Mongo transaction",async(t
   });
 
   await Employee.create({employeeId:actor,name:"Pricing Test Employee",mobile:"9000000002",normalizedMobile:"9000000002",roleId:uuid()});
+  await t.test("revoked OTP device sessions cannot authorize requests",async()=>{
+    const Role=require("../models/Role");
+    const AdminSession=require("../models/AdminSession");
+    const {createAdminSession,revokeAdminSession,attachAdmin}=require("../middleware/auth");
+    const roleId=uuid(),employeeId=uuid();
+    await Role.create({roleId,name:"QA Session Role",slug:"qa-session-role",permissions:["dashboard.view"]});
+    await Employee.create({employeeId,name:"Session QA Employee",mobile:"9000000003",normalizedMobile:"9000000003",roleId});
+    let token="",cookieName="";
+    const response={cookie(name,value){cookieName=name;token=value;}};
+    const session=await createAdminSession(response,{employeeId,roleId,permissions:["dashboard.view"]});
+    assert.equal(await AdminSession.countDocuments({sessionId:session.sessionId,employeeId,revokedAt:null}),1);
+    const load=async()=>{
+      const req={cookies:{[cookieName]:token}},res={locals:{},clearCookie(){}};
+      await new Promise((resolve,reject)=>attachAdmin(req,res,error=>error?reject(error):resolve()));
+      return {req,res};
+    };
+    const active=await load();
+    assert.equal(active.req.admin.employeeId,employeeId);
+    assert.equal(active.req.adminSessionId,session.sessionId);
+    assert.equal(active.res.locals.currentAdmin.sessionId,undefined);
+    await revokeAdminSession({employeeId,sessionId:session.sessionId});
+    assert.equal((await load()).req.admin,null);
+  });
+
   await t.test("payment idempotency replays a missing paidAt without double recording cash",async()=>{
     const finance=require("../services/finance-service");
     const Payment=require("../models/Payment");
@@ -119,6 +143,28 @@ test("order confirmation reserves stock inside a real Mongo transaction",async(t
     assert.equal(await Payment.countDocuments({idempotencyKey}),1);
     await assert.rejects(finance.recordPayment({...payload,amountPaise:1600},actor),err=>err.status===409&&err.code==="IDEMPOTENCY_KEY_REUSED");
   });
+  await t.test("reconciled allocation changes require authority, a reason, and transactional history",async()=>{
+    const finance=require("../services/finance-service");
+    const Invoice=require("../models/Invoice");
+    const Payment=require("../models/Payment");
+    const PaymentAdjustment=require("../models/PaymentAdjustment");
+    const created=await finance.recordPayment({idempotencyKey:"qa-reconciled-"+uuid(),direction:"receivable",customerId,amountPaise:5000,mode:"bank_transfer",reference:"QA RECONCILED ADVANCE",allocations:[]},actor);
+    await finance.reconcile(created.paymentId,actor);
+    const invoice=(await Invoice.create({invoiceNumber:"INV-QA-"+uuid().slice(0,12),salesOrderId:uuid(),customerId,customerSnapshot:{businessName:"QA Customer"},lines:[],taxablePaise:5000,gstTreatment:"no_gst",totalGstPaise:0,totalPaise:5000,outstandingPaise:5000,status:"issued",createdBy:actor}));
+    const input={allocations:[{documentId:invoice.invoiceId,amountPaise:2000}],note:"Bank reconciled advance applied after invoice"};
+    await assert.rejects(finance.allocatePayment(created.paymentId,input,actor),e=>e.status===403&&e.code==="RECONCILED_PAYMENT_ADJUSTMENT_FORBIDDEN");
+    await assert.rejects(finance.allocatePayment(created.paymentId,{...input,note:"short"},actor,true),e=>e.status===400&&e.code==="RECONCILED_PAYMENT_REASON_REQUIRED");
+    const allocated=await finance.allocatePayment(created.paymentId,input,actor,true);
+    assert.equal(allocated.unallocatedPaise,3000);
+    assert.equal(await PaymentAdjustment.countDocuments({paymentId:created.paymentId,action:"allocation"}),1);
+    await assert.rejects(finance.voidInvoice(invoice.invoiceId,{reason:"Accounting correction of invoice"},actor),e=>e.status===403&&e.code==="RECONCILED_PAYMENT_ADJUSTMENT_FORBIDDEN");
+    assert.equal((await Invoice.findOne({invoiceId:invoice.invoiceId}).lean()).status,"issued");
+    const voided=await finance.voidInvoice(invoice.invoiceId,{reason:"Accounting correction of invoice"},actor,true);
+    assert.equal(voided.status,"void");
+    assert.equal((await Payment.findOne({paymentId:created.paymentId}).lean()).unallocatedPaise,5000);
+    assert.equal(await PaymentAdjustment.countDocuments({paymentId:created.paymentId,action:"reversal"}),1);
+  });
+
   await t.test("manual adjustment rejects workflow-managed stock without mutation",async()=>{
     const inventory=require("../services/inventory-service");
     const before=await InventoryBalance.findOne({warehouseId,productId}).lean();
@@ -224,7 +270,7 @@ test("order confirmation reserves stock inside a real Mongo transaction",async(t
 
   await t.test("streamed business reporting agrees with MongoDB order totals",async()=>{
     const reports=require("../services/report-service");
-    const today=new Date().toISOString().slice(0,10);
+    const today=new Date(Date.now()+330*60000).toISOString().slice(0,10);
     const result=await reports.businessSummary({from:today,to:today});
     const orders=await SalesOrder.find({status:{$ne:"cancelled"},orderType:{$ne:"replacement"}}).lean();
     const netSales=orders.reduce((sum,order)=>sum+Number(order.taxablePaise||0),0);
