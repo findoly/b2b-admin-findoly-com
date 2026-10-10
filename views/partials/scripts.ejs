@@ -48,6 +48,7 @@
     }
   }
 
+  function indiaToday(){return new Date(Date.now()+330*60000).toISOString().slice(0,10);}
   function money(paise) { const amount=Number(paise); return new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2}).format(Number.isFinite(amount)?amount/100:0); }
   function safeDate(value){if(!value)return null;const d=new Date(value);return Number.isFinite(d.getTime())?d:null;}
   function formatDate(value){const d=safeDate(value);return d?new Intl.DateTimeFormat('en-IN',{dateStyle:'medium',timeStyle:'short'}).format(d):'—';}
